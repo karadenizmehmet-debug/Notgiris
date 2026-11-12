@@ -1,11 +1,11 @@
 // Not Giriş — çevrimdışı önbellek. Mehmet Karadeniz, 2026-2027
 // Uygulama dosyaları: önce ağ (güncelleme hemen gelsin), ağ yoksa önbellek.
 // Büyük dosyalar (OCR motoru, dil verisi, model): önce önbellek.
-const CACHE = 'notgiris-v0.5.2';
+const CACHE = 'notgiris-v0.6.0';
 const BUYUK = ['vendor/', 'lang/', 'model/', 'icons/'];
 const FILES = [
   './', 'index.html', 'manifest.json', 'css/app.css',
-  'js/app.js', 'js/table.js', 'js/digits.js', 'model/digits.json',
+  'js/app.js', 'js/onay.js', 'js/table.js', 'js/digits.js', 'model/digits.json',
   'vendor/tesseract.min.js', 'vendor/xlsx.full.min.js', 'vendor/worker.min.js',
   'vendor/tesseract-core-lstm.wasm.js', 'vendor/tesseract-core-simd-lstm.wasm.js',
   'vendor/tesseract-core-relaxedsimd-lstm.wasm.js',

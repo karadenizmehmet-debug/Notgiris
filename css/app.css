@@ -139,3 +139,25 @@ body.kurulumda { overflow: hidden; }
 .kur-not a { color: var(--mavi); }
 .kur-durum.tamam { background: #e3f4e5; color: #1e5b27; font-weight: 700; }
 :root[data-tema="gece"] .kur-durum.tamam { background: #1d3a24; color: #a8dcb0; }
+
+/* Giriş ekranı (kurulum ekranının altında) */
+#giris { position: fixed; inset: 0; z-index: 999; background: var(--zemin); overflow: auto; padding: 24px 16px; display: flex; align-items: flex-start; justify-content: center; }
+#giris[hidden] { display: none; }
+body.giriste { overflow: hidden; }
+#giris .kur-buton { margin-top: 8px; }
+#giris .butonlar { margin-top: 10px; }
+.giris-bekle { width: 28px; height: 28px; margin: 10px auto; border: 3px solid var(--kenar); border-top-color: var(--mavi); border-radius: 50%; animation: donus 0.9s linear infinite; }
+.giris-bekle[hidden] { display: none; }
+@keyframes donus { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .giris-bekle { animation: none; } }
+
+/* Yönetici: kullanıcı onayları */
+.yonetim-baslik { font-size: 16px; margin: 4px 0 8px; }
+.yonetim-baslik small { color: var(--soluk); font-weight: 400; font-size: 13px; }
+.uye { padding: 10px 0; border-bottom: 1px solid var(--kenar); }
+.uye small { color: var(--soluk); }
+.uye .butonlar { margin-top: 6px; }
+.etiket { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 10px; vertical-align: 1px; }
+.etiket.ok { background: #e3f4e5; color: #1e5b27; }
+.etiket.bekle { background: #fff3c4; color: #6b4d00; }
+#giris [hidden], #kurulum [hidden], #hesapBolum[hidden], #yonetimBolum[hidden] { display: none !important; }
