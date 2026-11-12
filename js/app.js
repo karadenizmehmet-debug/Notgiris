@@ -2,7 +2,7 @@
 // Mehmet Karadeniz, 2026-2027
 // Tüm veriler bu cihazın localStorage alanında tutulur; hiçbir yere gönderilmez.
 
-const SURUM = '0.2.1';
+const SURUM = '0.2.2';
 const ANAHTAR = 'notgiris_v2';
 const $ = s => document.querySelector(s);
 
@@ -304,6 +304,35 @@ if (!S.sinavlar.length) yeniSinav('Yeni sınav');
 if (!aktif()) { S.aktif = S.sinavlar[0].id; sakla(); }
 sinavSecCiz();
 $('#surum').textContent = 'v' + SURUM;
+$('#surumUst').textContent = 'v' + SURUM;
+
+// ---------- Gece/gündüz modu ----------
+function temaUygula(t) {
+  document.documentElement.dataset.tema = t;
+  $('#tema').textContent = t === 'gece' ? '☀️' : '🌙';
+  document.querySelector('meta[name=theme-color]').content = t === 'gece' ? '#16263d' : '#1f3a5f';
+}
+let tema;
+try { tema = localStorage.getItem('notgiris_tema'); } catch (e) { tema = null; }
+temaUygula(tema || (matchMedia('(prefers-color-scheme: dark)').matches ? 'gece' : 'gunduz'));
+$('#tema').addEventListener('click', () => {
+  const yeni = document.documentElement.dataset.tema === 'gece' ? 'gunduz' : 'gece';
+  temaUygula(yeni);
+  try { localStorage.setItem('notgiris_tema', yeni); } catch (e) { /* yoksay */ }
+});
+
+// ---------- Paylaş ----------
+$('#paylas').addEventListener('click', async () => {
+  const url = new URL('.', location.href).href;
+  const veri = { title: 'Not Giriş', text: 'Sınıf puan listesini e-Okul soru bazlı not girişine aktaran uygulama. Veriler telefonda kalır.', url };
+  try {
+    if (navigator.share) { await navigator.share(veri); return; }
+    await navigator.clipboard.writeText(url);
+    mesaj('Uygulama bağlantısı kopyalandı.');
+  } catch (e) {
+    if (e.name !== 'AbortError') prompt('Bağlantıyı kopyalayın:', url);
+  }
+});
 sekme('puan');
 
 if ('serviceWorker' in navigator) {

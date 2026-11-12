@@ -10,6 +10,25 @@
   --sari: #f9a825;
   --yesil: #2e7d32;
   --kenar: #d9dee5;
+  --giris: #fff;
+  --baslik-zemin: #eef2f7;
+  --sup: #fff4c2;
+  --hat: #fdd9d9;
+  color-scheme: light;
+}
+:root[data-tema="gece"] {
+  --lacivert: #16263d;
+  --mavi: #3d82cc;
+  --zemin: #11161d;
+  --kart: #1b222c;
+  --yazi: #e6eaf0;
+  --soluk: #98a2b0;
+  --kenar: #2e3846;
+  --giris: #1f2733;
+  --baslik-zemin: #222b37;
+  --sup: #4a3f12;
+  --hat: #4d1f1f;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
@@ -17,13 +36,13 @@ body {
   background: var(--zemin); color: var(--yazi); font-size: 16px;
   padding-bottom: env(safe-area-inset-bottom);
 }
-header {
-  background: var(--lacivert); color: #fff; padding: 12px 14px;
-  display: flex; align-items: center; gap: 10px;
-}
-header h1 { font-size: 19px; margin: 0; flex: 0 0 auto; }
-header select { flex: 1; min-width: 0; padding: 6px; border-radius: 8px; border: 0; font-size: 15px; }
-nav { display: flex; background: #fff; border-bottom: 1px solid var(--kenar); position: sticky; top: 0; z-index: 5; }
+header { background: var(--lacivert); color: #fff; padding: 10px 14px 12px; }
+header .ust { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+header h1 { font-size: 19px; margin: 0; flex: 1; }
+header h1 small { font-size: 12px; font-weight: 500; opacity: .75; margin-left: 4px; }
+header .ikon { background: rgba(255,255,255,.14); border: 0; color: #fff; font-size: 18px; padding: 6px 10px; border-radius: 10px; }
+header select { width: 100%; padding: 8px; border-radius: 8px; border: 0; font-size: 15px; margin: 0; }
+nav { display: flex; background: var(--kart); border-bottom: 1px solid var(--kenar); position: sticky; top: 0; z-index: 5; }
 nav button {
   flex: 1; padding: 13px 4px; border: 0; background: none; font-size: 15px; color: var(--soluk);
   border-bottom: 3px solid transparent;
@@ -35,10 +54,10 @@ main { padding: 14px; max-width: 720px; margin: 0 auto; }
 label { display: block; margin: 12px 0 4px; font-weight: 600; font-size: 14px; }
 input, select, textarea {
   width: 100%; padding: 10px; font-size: 16px; border: 1px solid var(--kenar);
-  border-radius: 10px; background: #fff; font-family: inherit; margin-top: 4px;
+  border-radius: 10px; background: var(--giris); color: var(--yazi); font-family: inherit; margin-top: 4px;
 }
 .ipucu { color: var(--soluk); display: block; margin-top: 4px; }
-.bilgi { background: #fff7e0; border: 1px solid #f0d68a; padding: 12px; border-radius: 10px; }
+.bilgi { background: var(--sup); border: 1px solid var(--kenar); padding: 12px; border-radius: 10px; }
 .giris { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
 .buyuk-buton {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
@@ -47,13 +66,13 @@ input, select, textarea {
 }
 .buyuk-buton span { font-size: 14px; }
 .buyuk-buton:first-child { grid-column: 1 / -1; font-size: 30px; padding: 20px; }
-.buyuk-buton.ikinci { background: #fff; color: var(--lacivert); border: 1px solid var(--kenar); }
+.buyuk-buton.ikinci { background: var(--kart); color: var(--yazi); border: 1px solid var(--kenar); }
 #yapistirAlan { margin-bottom: 12px; }
 .butonlar { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
 .butonlar > * { flex: 1; text-align: center; }
 button, .ikincil {
   padding: 12px; font-size: 15px; border-radius: 10px; border: 1px solid var(--kenar);
-  background: #fff; font-weight: 600; margin: 0; cursor: pointer; display: block;
+  background: var(--kart); color: var(--yazi); font-weight: 600; margin: 0; cursor: pointer; display: block;
 }
 .birincil { background: var(--lacivert); color: #fff; border-color: var(--lacivert); }
 .tehlike { color: var(--kirmizi); }
@@ -69,16 +88,16 @@ button, .ikincil {
 #tablo td input { margin: 0; padding: 6px 4px; font-size: 17px; border-radius: 6px; }
 #tablo td.hucre input { text-align: center; font-weight: 700; width: 52px; }
 #tablo td.ad small { color: var(--soluk); font-size: 11px; }
-#tablo td.supheli { background: #fff4c2; }
-#tablo td.hata { background: #fdd9d9; }
+#tablo td.supheli { background: var(--sup); }
+#tablo td.hata { background: var(--hat); }
 #tablo td.top { font-weight: 700; text-align: center; }
 #tablo th small { color: var(--soluk); font-weight: 400; }
 #tablo .sil { padding: 4px 8px; font-size: 13px; color: var(--kirmizi); }
 details { margin-top: 10px; }
-canvas { width: 100%; border-radius: 10px; margin-top: 8px; background: #fff; }
-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; font-size: 14px; }
+
+table { width: 100%; border-collapse: collapse; background: var(--kart); border-radius: 10px; overflow: hidden; font-size: 14px; }
 th, td { padding: 8px 6px; border-bottom: 1px solid var(--kenar); text-align: left; }
-th { background: #eef2f7; font-size: 13px; }
+th { background: var(--baslik-zemin); font-size: 13px; }
 tr.bos td { color: var(--soluk); }
 td .sil { padding: 4px 8px; font-size: 12px; }
 .ozet { margin-bottom: 10px; color: var(--soluk); }
@@ -88,3 +107,5 @@ footer { text-align: center; color: var(--soluk); font-size: 12px; padding: 20px
   position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #222; color: #fff;
   padding: 10px 16px; border-radius: 20px; font-size: 14px; z-index: 20; max-width: 90%;
 }
+:root[data-tema="gece"] nav button.aktif { color: #8fbaf0; }
+.giris .buyuk-buton { margin: 0; }
