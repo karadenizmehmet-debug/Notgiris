@@ -1,0 +1,82 @@
+/* Not Giriş — Mehmet Karadeniz, 2026-2027 */
+:root {
+  --lacivert: #1f3a5f;
+  --mavi: #2f6fb3;
+  --zemin: #f4f6f9;
+  --kart: #fff;
+  --yazi: #1d2430;
+  --soluk: #6b7480;
+  --kirmizi: #c62828;
+  --sari: #f9a825;
+  --yesil: #2e7d32;
+  --kenar: #d9dee5;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--zemin); color: var(--yazi); font-size: 16px;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+header {
+  background: var(--lacivert); color: #fff; padding: 12px 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+header h1 { font-size: 19px; margin: 0; flex: 0 0 auto; }
+header select { flex: 1; min-width: 0; padding: 6px; border-radius: 8px; border: 0; font-size: 15px; }
+nav { display: flex; background: #fff; border-bottom: 1px solid var(--kenar); position: sticky; top: 0; z-index: 5; }
+nav button {
+  flex: 1; padding: 13px 4px; border: 0; background: none; font-size: 15px; color: var(--soluk);
+  border-bottom: 3px solid transparent;
+}
+nav button.aktif { color: var(--lacivert); border-bottom-color: var(--mavi); font-weight: 600; }
+main { padding: 14px; max-width: 720px; margin: 0 auto; }
+.tab { display: none; }
+.tab.aktif { display: block; }
+label { display: block; margin: 12px 0 4px; font-weight: 600; font-size: 14px; }
+input, select, textarea {
+  width: 100%; padding: 10px; font-size: 16px; border: 1px solid var(--kenar);
+  border-radius: 10px; background: #fff; font-family: inherit; margin-top: 4px;
+}
+.ipucu { color: var(--soluk); display: block; margin-top: 4px; }
+.bilgi { background: #fff7e0; border: 1px solid #f0d68a; padding: 12px; border-radius: 10px; }
+.buyuk-buton {
+  display: block; text-align: center; background: var(--mavi); color: #fff; padding: 22px;
+  border-radius: 14px; font-size: 18px; margin: 4px 0 12px; cursor: pointer;
+}
+.butonlar { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+.butonlar > * { flex: 1; text-align: center; }
+button, .ikincil {
+  padding: 12px; font-size: 15px; border-radius: 10px; border: 1px solid var(--kenar);
+  background: #fff; font-weight: 600; margin: 0; cursor: pointer; display: block;
+}
+.birincil { background: var(--lacivert); color: #fff; border-color: var(--lacivert); }
+.tehlike { color: var(--kirmizi); }
+#ilerleme .cubuk { height: 8px; background: var(--kenar); border-radius: 4px; overflow: hidden; }
+#ilerleme .cubuk span { display: block; height: 100%; width: 0; background: var(--mavi); transition: width .2s; }
+#ilerleme small { color: var(--soluk); }
+.puan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; margin-top: 12px; }
+.puan {
+  background: var(--kart); border: 2px solid var(--kenar); border-radius: 12px; padding: 6px 8px;
+}
+.puan .baslik { font-size: 12px; color: var(--soluk); display: flex; justify-content: space-between; }
+.puan input { border: 0; font-size: 24px; font-weight: 700; padding: 2px 0; margin: 0; text-align: center; }
+.puan.supheli { border-color: var(--sari); background: #fffbea; }
+.puan.hata { border-color: var(--kirmizi); background: #fdecec; }
+.puan.tamam { border-color: #a5d6a7; }
+.toplam { margin-top: 12px; font-size: 18px; }
+#kagitToplam.uyusmaz { color: var(--kirmizi); font-weight: 600; }
+#kagitToplam.uyusur { color: var(--yesil); }
+details { margin-top: 10px; }
+canvas { width: 100%; border-radius: 10px; margin-top: 8px; background: #fff; }
+table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; font-size: 14px; }
+th, td { padding: 8px 6px; border-bottom: 1px solid var(--kenar); text-align: left; }
+th { background: #eef2f7; font-size: 13px; }
+tr.bos td { color: var(--soluk); }
+td .sil { padding: 4px 8px; font-size: 12px; }
+.ozet { margin-bottom: 10px; color: var(--soluk); }
+hr { border: 0; border-top: 1px solid var(--kenar); margin: 20px 0; }
+footer { text-align: center; color: var(--soluk); font-size: 12px; padding: 20px 10px; }
+#mesaj {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #222; color: #fff;
+  padding: 10px 16px; border-radius: 20px; font-size: 14px; z-index: 20; max-width: 90%;
+}
