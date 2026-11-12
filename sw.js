@@ -1,5 +1,8 @@
 // Not Giriş — çevrimdışı önbellek. Mehmet Karadeniz, 2026-2027
-const CACHE = 'notgiris-v0.2.0';
+// Uygulama dosyaları: önce ağ (güncelleme hemen gelsin), ağ yoksa önbellek.
+// Büyük dosyalar (OCR motoru, dil verisi, model): önce önbellek.
+const CACHE = 'notgiris-v0.2.1';
+const BUYUK = ['vendor/', 'lang/', 'model/', 'icons/'];
 const FILES = [
   './', 'index.html', 'manifest.json', 'css/app.css',
   'js/app.js', 'js/table.js', 'js/digits.js', 'model/digits.json',
@@ -17,6 +20,15 @@ self.addEventListener('activate', e => {
     .then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
-  e.respondWith(caches.match(e.request, { ignoreSearch: true }).then(r => r || fetch(e.request)));
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  const yol = url.pathname.split('/').slice(2).join('/');
+  if (BUYUK.some(b => yol.startsWith(b))) {
+    e.respondWith(caches.match(e.request, { ignoreSearch: true }).then(r => r || fetch(e.request)));
+    return;
+  }
+  e.respondWith(fetch(e.request).then(r => {
+    if (r.ok) { const k = r.clone(); caches.open(CACHE).then(c => c.put(e.request, k)); }
+    return r;
+  }).catch(() => caches.match(e.request, { ignoreSearch: true })));
 });

@@ -2,7 +2,7 @@
 // Mehmet Karadeniz, 2026-2027
 // Tüm veriler bu cihazın localStorage alanında tutulur; hiçbir yere gönderilmez.
 
-const SURUM = '0.2.0';
+const SURUM = '0.2.1';
 const ANAHTAR = 'notgiris_v2';
 const $ = s => document.querySelector(s);
 
@@ -307,5 +307,8 @@ $('#surum').textContent = 'v' + SURUM;
 sekme('puan');
 
 if ('serviceWorker' in navigator) {
+  const ilkKurulum = !navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW kaydı başarısız', e));
+  // Yeni sürüm devreye girince sayfayı bir kez yenile
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!ilkKurulum) location.reload(); });
 }
