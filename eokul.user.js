@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Not Giriş – e-Okul soru bazlı puan doldurucu
 // @namespace    https://karadenizmehmet-debug.github.io/notgiris/
-// @version      0.3.3
+// @version      0.3.4
 // @description  Not Giriş uygulamasından kopyalanan puanları e-Okul not giriş ekranındaki kutulara yazar. Kaydet düğmesine öğretmen basar.
 // @author       Mehmet Karadeniz, 2026-2027
 // @match        https://e-okul.meb.gov.tr/*
 // @match        https://*.e-okul.meb.gov.tr/*
-// @grant        none
+// @grant        GM_setClipboard
+// @grant        GM_registerMenuCommand
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -69,10 +70,11 @@
   }
 
   function degerYaz(input, deger) {
-    const pencere = input.ownerDocument.defaultView || window;
-    const setter = Object.getOwnPropertyDescriptor(pencere.HTMLInputElement.prototype, 'value').set;
     input.focus();
-    setter.call(input, deger);
+    try {
+      const pencere = input.ownerDocument.defaultView || window;
+      Object.getOwnPropertyDescriptor(pencere.HTMLInputElement.prototype, 'value').set.call(input, deger);
+    } catch (e) { input.value = deger; }
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
     input.dispatchEvent(new Event('blur', { bubbles: true }));
@@ -84,7 +86,7 @@
     p.id = 'ng-panel';
     p.innerHTML = `
       <style>
-        #ng-panel{position:fixed;right:10px;bottom:10px;z-index:2147483647;font:14px system-ui,sans-serif}
+        #ng-panel{position:fixed!important;right:10px;bottom:10px;transform:none;z-index:2147483647;font:14px system-ui,sans-serif}
         #ng-panel .ng-ac{background:#1f3a5f;color:#fff;border:0;border-radius:22px;padding:10px 16px;font-weight:600;box-shadow:0 2px 8px #0004}
         #ng-panel .ng-kutu{display:none;background:#fff;color:#1d2430;width:min(330px,92vw);padding:12px;border-radius:12px;box-shadow:0 4px 16px #0005;margin-bottom:8px}
         #ng-panel.acik .ng-kutu{display:block}
@@ -104,10 +106,10 @@
         <div class="ng-s" id="ng-durum"></div>
       </div>
       <button class="ng-ac" id="ng-ac">Not Giriş</button>`;
-    document.body.appendChild(p);
+    document.documentElement.appendChild(p);
     const durum = t => { p.querySelector('#ng-durum').textContent = t; };
 
-    p.querySelector('#ng-ac').onclick = () => {
+    p.querySelector('#ng-ac').addEventListener('click', () => {
       p.classList.toggle('acik');
       // Satırdaki kutu sayısına göre başlangıç seçenekleri
       const sat = ogrenciSatirlari()[0];
@@ -115,17 +117,17 @@
       const sel = p.querySelector('#ng-bas'), eski = sel.value;
       sel.innerHTML = Array.from({ length: Math.max(1, n) }, (_, i) => `<option value="${i}">${i + 1}. kutu</option>`).join('');
       if (eski < n) sel.value = eski;
-    };
+    });
 
-    p.querySelector('#ng-liste').onclick = async () => {
+    p.querySelector('#ng-liste').addEventListener('click', () => {
       const liste = ogrenciSatirlari().map(tr => { const no = satirNo(tr); return { no, ad: satirAd(tr, no) }; });
       if (!liste.length) { durum(`Bu sayfada öğrenci satırı bulunamadı. Sınıfı ve dersi seçip not giriş tablosunu açın.\n(Bulunan: ${belgeler().length} belge, ${belgeler().reduce((t, d) => t + d.querySelectorAll('tr').length, 0)} satır, ${belgeler().reduce((t, d) => t + d.querySelectorAll('input').length, 0)} kutu)`); return; }
       const metin = JSON.stringify(liste);
-      try { await navigator.clipboard.writeText(metin); durum(`${liste.length} öğrenci kopyalandı. Not Giriş > Ayarlar > Sınıf listesi alanına yapıştırıp Kaydet’e basın.`); }
+      try { GM_setClipboard(metin, 'text'); durum(`${liste.length} öğrenci kopyalandı. Not Giriş > Ayarlar > Sınıf listesi alanına yapıştırıp Kaydet’e basın.`); }
       catch (e) { p.querySelector('#ng-veri').value = metin; durum('Kopyalanamadı: kutudaki metni seçip kopyalayın.'); }
-    };
+    });
 
-    p.querySelector('#ng-doldur').onclick = () => {
+    p.querySelector('#ng-doldur').addEventListener('click', () => {
       let veri;
       try { veri = JSON.parse(p.querySelector('#ng-veri').value.trim()); }
       catch (e) { durum('Yapıştırılan metin okunamadı.'); return; }
@@ -153,9 +155,11 @@
       if (kutuSorunu.length) t += `\nKutu sayısı uymayan (sarı): ${kutuSorunu.join(', ')}`;
       t += '\nKontrol edip e-Okul’daki Kaydet düğmesine basın.';
       durum(t);
-    };
+    });
   }
 
   // Panel e-Okul'un her sayfasında görünür; öğrenci tablosu düğmeye basınca aranır.
   paneliKur();
+  // Düğme görünmezse Tampermonkey menüsünden açılabilsin
+  try { GM_registerMenuCommand('Not Giriş panelini aç', () => { paneliKur(); document.getElementById('ng-panel').classList.add('acik'); document.getElementById('ng-panel').scrollIntoView(); }); } catch (e) { /* menü desteklenmiyor */ }
 })();
