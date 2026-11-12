@@ -2,7 +2,7 @@
 // Mehmet Karadeniz, 2026-2027
 // Tüm veriler bu cihazın localStorage alanında tutulur; hiçbir yere gönderilmez.
 
-const SURUM = '0.4.1';
+const SURUM = '0.5.0';
 const YARDIMCI_GEREKEN = '0.4.0'; // e-Okul yardımcısının (eokul.user.js) en az bu sürümü
 const ANAHTAR = 'notgiris_v2';
 const $ = s => document.querySelector(s);
@@ -345,12 +345,49 @@ window.addEventListener('message', e => {
   if (e.origin !== location.origin || typeof e.data !== 'string' || !e.data.startsWith('{"ngY"')) return;
   let m;
   try { m = JSON.parse(e.data); } catch (err) { return; }
-  if (m.ngY === 'durum') { yardimci = { surum: m.surum }; yardimciCiz(); listeGeldi(m.liste); }
+  if (m.ngY === 'durum') { yardimci = { surum: m.surum }; yardimciCiz(); kurulumCiz(); listeGeldi(m.liste); }
   if (m.ngY === 'gonderildi' && bekleyenGonderim) {
     clearTimeout(bekleyenGonderim); bekleyenGonderim = null;
     alert(`${m.adet} öğrencinin puanları e-Okul yardımcısına gönderildi.\n\nFirefox'ta e-Okul not giriş sayfasını açıp Listele'ye basın; panel kendiliğinden açılır. “Puanları Doldur”a basın, kontrol edip Kaydet'e siz basın.`);
   }
 });
+// ---------- Kurulum ekranı ----------
+// Firefox + Tampermonkey + güncel e-Okul yardımcısı yoksa uygulama açılmaz.
+// Yalnızca geliştirici için kaçış: adresin sonuna ?kurulum=atla
+const firefoxMu = /Firefox\//.test(navigator.userAgent);
+let kurulumAtla = false;
+try { kurulumAtla = new URLSearchParams(location.search).get('kurulum') === 'atla'; } catch (e) { /* yoksay */ }
+let kurulumIlk = true;
+function kurulumCiz() {
+  const k = $('#kurulum');
+  if (kurulumAtla || yardimciTamam()) { k.hidden = true; document.body.classList.remove('kurulumda'); return; }
+  k.hidden = false; document.body.classList.add('kurulumda');
+  if (kurulumIlk) return; // ilk anda yardımcının cevabını bekle, ekran gidip gelmesin
+  const adim = !firefoxMu ? 1 : yardimci ? 3 : 2;
+  [1, 2, 3].forEach(i => {
+    const li = $('#kurA' + i);
+    li.className = i < adim ? 'tamam' : i === adim ? 'sirada' : 'bekliyor';
+  });
+  // Tampermonkey kurulu mu bilinemez; yardımcı yoksa 2 ve 3 birlikte açık kalır
+  if (firefoxMu && !yardimci) $('#kurA3').className = 'sirada';
+  $('#kurBetik').textContent = yardimci ? 'Yardımcıyı güncelle' : 'Yardımcıyı kur';
+  $('#kurDurum').textContent = !firefoxMu ? 'Şu an Firefox dışında bir tarayıcıdasınız.'
+    : yardimci ? `Yardımcı eski (v${yardimci.surum}); güncelleyin.`
+    : 'e-Okul yardımcısı bulunamadı. Tampermonkey ve yardımcı kurulunca bu ekran kendiliğinden kapanır.';
+}
+{
+  // Chrome'dan Firefox'ta açma: Firefox yoksa Play Store'a gider
+  const adres = new URL('.', location.href);
+  const magaza = 'https://play.google.com/store/apps/details?id=org.mozilla.firefox';
+  $('#kurFirefox').href = /Android/i.test(navigator.userAgent)
+    ? `intent://${adres.host}${adres.pathname}#Intent;scheme=https;package=org.mozilla.firefox;S.browser_fallback_url=${encodeURIComponent(magaza)};end`
+    : 'https://www.mozilla.org/tr/firefox/';
+}
+kurulumCiz();
+setTimeout(() => { kurulumIlk = false; kurulumCiz(); }, 1500);
+// Kurulum ekranındayken yardımcıyı ara ara yokla (kurulumdan dönünce kendiliğinden kapanır)
+setInterval(() => { if (!$('#kurulum').hidden) yardimciyaYolla({ ngU: 'sor' }); }, 2000);
+
 // Uygulamaya her dönüşte yeni liste var mı diye sor
 document.addEventListener('visibilitychange', () => { if (!document.hidden) yardimciyaYolla({ ngU: 'sor' }); });
 

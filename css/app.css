@@ -118,3 +118,21 @@ footer { text-align: center; color: var(--soluk); font-size: 12px; padding: 20px
 .yardimci a { color: inherit; font-weight: 700; }
 :root[data-tema="gece"] .yardimci.var { background: #1d3a24; color: #a8dcb0; }
 :root[data-tema="gece"] .yardimci.yok, :root[data-tema="gece"] .yardimci.eski { background: #3d3214; color: #f0d68a; }
+
+/* Kurulum ekranı */
+#kurulum { position: fixed; inset: 0; z-index: 1000; background: var(--zemin); overflow: auto; padding: 24px 16px; display: flex; align-items: flex-start; justify-content: center; }
+#kurulum[hidden] { display: none; }
+body.kurulumda { overflow: hidden; }
+.kur-kart { width: 100%; max-width: 460px; background: var(--kart); color: var(--yazi); border-radius: 16px; padding: 20px; box-shadow: 0 4px 18px #0002; }
+.kur-kart h2 { margin: 0 0 4px; font-size: 20px; }
+.kur-alt { margin: 0 0 14px; color: var(--soluk); font-size: 14px; }
+.kur-adimlar { margin: 0; padding-left: 22px; }
+.kur-adimlar li { margin: 0 0 16px; padding-left: 4px; }
+.kur-adimlar li b { font-size: 16px; }
+.kur-not { display: block; color: var(--soluk); font-size: 13px; margin: 2px 0 8px; }
+.kur-buton { display: block; text-align: center; padding: 12px; border-radius: 10px; background: var(--mavi); color: #fff; font-weight: 700; text-decoration: none; }
+.kur-adimlar li.tamam { opacity: .55; }
+.kur-adimlar li.tamam b::after { content: " ✓"; color: var(--yesil); }
+.kur-adimlar li.tamam .kur-buton, .kur-adimlar li.bekliyor .kur-buton { display: none; }
+.kur-adimlar li.bekliyor { opacity: .45; }
+.kur-durum { margin: 4px 0 0; padding: 10px; border-radius: 8px; background: var(--sup); color: #6b4d00; font-size: 13px; }

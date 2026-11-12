@@ -94,6 +94,26 @@
   </section>
 </main>
 
+<!-- KURULUM: Firefox + Tampermonkey + e-Okul yardımcısı olmadan uygulama açılmaz -->
+<div id="kurulum">
+  <div class="kur-kart">
+    <h2>Not Giriş – Kurulum</h2>
+    <p class="kur-alt">Puanları e-Okul'a aktarabilmek için bir kez kurulum gerekir. Sırayla yapın.</p>
+    <ol class="kur-adimlar">
+      <li id="kurA1"><b>Firefox</b> ile açın
+        <span class="kur-not">Chrome eklenti çalıştıramaz.</span>
+        <a class="kur-buton" id="kurFirefox" href="#">Firefox'ta aç</a></li>
+      <li id="kurA2"><b>Tampermonkey</b> eklentisini ekleyin
+        <span class="kur-not">Açılan sayfada “Firefox'a ekle”ye, sonra “Ekle”ye dokunun. Sonra bu sayfaya dönün.</span>
+        <a class="kur-buton" href="https://addons.mozilla.org/tr/android/addon/tampermonkey/" target="_blank" rel="noopener">Tampermonkey'i ekle</a></li>
+      <li id="kurA3"><b>e-Okul yardımcısını</b> kurun
+        <span class="kur-not">Açılan ekranda “Yükle”ye dokunun. Sonra bu sayfaya dönün.</span>
+        <a class="kur-buton" id="kurBetik" href="eokul.user.js">Yardımcıyı kur</a></li>
+    </ol>
+    <p class="kur-durum" id="kurDurum">Kontrol ediliyor…</p>
+  </div>
+</div>
+
 <footer>Veriler yalnızca bu telefonda saklanır. · Mehmet Karadeniz, 2026-2027 · <span id="surum"></span></footer>
 
 <div id="mesaj" hidden></div>
