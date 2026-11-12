@@ -1,25 +1,28 @@
 // ==UserScript==
 // @name         Not Giriş – e-Okul soru bazlı puan doldurucu
 // @namespace    https://karadenizmehmet-debug.github.io/notgiris/
-// @version      0.3.1
+// @version      0.3.2
 // @description  Not Giriş uygulamasından kopyalanan puanları e-Okul not giriş ekranındaki kutulara yazar. Kaydet düğmesine öğretmen basar.
 // @author       Mehmet Karadeniz, 2026-2027
 // @match        https://e-okul.meb.gov.tr/*
 // @match        https://*.e-okul.meb.gov.tr/*
 // @grant        none
 // @run-at       document-idle
+// @noframes
 // ==/UserScript==
 
 (function () {
   'use strict';
 
-  // Bir tablo satırındaki öğrenci numarasını bul (yalnızca rakamlardan oluşan ilk hücre)
+  // Bir tablo satırındaki öğrenci numarasını bul: ad hücresinden önceki son rakam hücresi
+  // (e-Okul'da önce sıra no, sonra öğrenci no gelir; sıra no alınırsa yanlış öğrenciye yazılabilir)
   function satirNo(tr) {
-    for (const td of tr.querySelectorAll('td')) {
-      const t = td.textContent.trim();
-      if (/^\d{1,6}$/.test(t)) return t;
-    }
-    return null;
+    const t = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
+    const adSira = t.findIndex(x => /[A-Za-zÇĞİÖŞÜçğıöşü]{2,}/.test(x) && x.length < 60);
+    const sayilar = t.map((x, i) => (/^\d{1,6}$/.test(x) ? i : -1)).filter(i => i >= 0);
+    const once = sayilar.filter(i => adSira < 0 || i < adSira);
+    const i = once.length ? once[once.length - 1] : sayilar[0];
+    return i === undefined ? null : t[i];
   }
   function satirAd(tr, no) {
     const hucreler = [...tr.querySelectorAll('td')].map(td => td.textContent.trim().replace(/\s+/g, ' '));
@@ -31,8 +34,16 @@
       return ['text', 'number', 'tel', ''].includes(tip) && !i.disabled && !i.readOnly && i.offsetParent !== null;
     });
   }
+  // Sayfa ve aynı kökenli iç çerçeveler (e-Okul tabloyu çerçevede gösterebilir)
+  function belgeler(d = document, out = []) {
+    out.push(d);
+    for (const f of d.querySelectorAll('iframe,frame')) {
+      try { if (f.contentDocument) belgeler(f.contentDocument, out); } catch (e) { /* farklı köken */ }
+    }
+    return out;
+  }
   function ogrenciSatirlari() {
-    return [...document.querySelectorAll('tr')].filter(tr => satirNo(tr) && satirAd(tr, satirNo(tr)));
+    return belgeler().flatMap(d => [...d.querySelectorAll('tr')]).filter(tr => satirNo(tr) && satirAd(tr, satirNo(tr)));
   }
 
   const kucuk = t => (t || '').toLocaleLowerCase('tr').replace(/[çğıöşü]/g, c => ({ ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u' }[c])).replace(/[^a-z]/g, '');
@@ -58,7 +69,8 @@
   }
 
   function degerYaz(input, deger) {
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    const pencere = input.ownerDocument.defaultView || window;
+    const setter = Object.getOwnPropertyDescriptor(pencere.HTMLInputElement.prototype, 'value').set;
     input.focus();
     setter.call(input, deger);
     input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -107,7 +119,7 @@
 
     p.querySelector('#ng-liste').onclick = async () => {
       const liste = ogrenciSatirlari().map(tr => { const no = satirNo(tr); return { no, ad: satirAd(tr, no) }; });
-      if (!liste.length) { durum('Bu sayfada öğrenci satırı bulunamadı.'); return; }
+      if (!liste.length) { durum(`Bu sayfada öğrenci satırı bulunamadı. Sınıfı ve dersi seçip not giriş tablosunu açın.\n(Bulunan: ${belgeler().length} belge, ${belgeler().reduce((t, d) => t + d.querySelectorAll('tr').length, 0)} satır, ${belgeler().reduce((t, d) => t + d.querySelectorAll('input').length, 0)} kutu)`); return; }
       const metin = JSON.stringify(liste);
       try { await navigator.clipboard.writeText(metin); durum(`${liste.length} öğrenci kopyalandı. Not Giriş > Ayarlar > Sınıf listesi alanına yapıştırıp Kaydet’e basın.`); }
       catch (e) { p.querySelector('#ng-veri').value = metin; durum('Kopyalanamadı: kutudaki metni seçip kopyalayın.'); }
@@ -144,12 +156,6 @@
     };
   }
 
-  // Öğrenci tablosu olan çerçevede paneli göster (sayfa sonradan yüklenebilir)
-  let zaman = null;
-  const gozcu = new MutationObserver(() => { clearTimeout(zaman); zaman = setTimeout(dene, 500); });
-  function dene() {
-    if (document.body && ogrenciSatirlari().length >= 1) { paneliKur(); gozcu.disconnect(); }
-  }
-  dene();
-  if (!document.getElementById('ng-panel')) gozcu.observe(document.documentElement, { childList: true, subtree: true });
+  // Panel e-Okul'un her sayfasında görünür; öğrenci tablosu düğmeye basınca aranır.
+  paneliKur();
 })();
