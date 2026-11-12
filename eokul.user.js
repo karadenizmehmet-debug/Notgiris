@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Not Giriş – e-Okul soru bazlı puan doldurucu
 // @namespace    https://karadenizmehmet-debug.github.io/notgiris/
-// @version      0.2.0
+// @version      0.3.0
 // @description  Not Giriş uygulamasından kopyalanan puanları e-Okul not giriş ekranındaki kutulara yazar. Kaydet düğmesine öğretmen basar.
 // @author       Mehmet Karadeniz, 2026-2027
 // @match        https://e-okul.meb.gov.tr/*
@@ -85,6 +85,8 @@
         <b>Not Giriş</b>
         <div class="ng-s">Uygulamada “e-Okul için kopyala”ya basın, sonra buraya uzun basıp yapıştırın.</div>
         <textarea id="ng-veri" placeholder="Kopyalanan puanları buraya yapıştırın"></textarea>
+        <div class="ng-s">Yazmaya başlanacak kutu (satırdaki sıra):
+          <select id="ng-bas"><option value="0">1. kutu</option></select></div>
         <button class="ng-b ana" id="ng-doldur">Puanları Doldur</button>
         <button class="ng-b" id="ng-liste">Listeyi Al (uygulamaya)</button>
         <div class="ng-s" id="ng-durum"></div>
@@ -93,7 +95,15 @@
     document.body.appendChild(p);
     const durum = t => { p.querySelector('#ng-durum').textContent = t; };
 
-    p.querySelector('#ng-ac').onclick = () => p.classList.toggle('acik');
+    p.querySelector('#ng-ac').onclick = () => {
+      p.classList.toggle('acik');
+      // Satırdaki kutu sayısına göre başlangıç seçenekleri
+      const sat = ogrenciSatirlari()[0];
+      const n = sat ? puanKutulari(sat).length : 1;
+      const sel = p.querySelector('#ng-bas'), eski = sel.value;
+      sel.innerHTML = Array.from({ length: Math.max(1, n) }, (_, i) => `<option value="${i}">${i + 1}. kutu</option>`).join('');
+      if (eski < n) sel.value = eski;
+    };
 
     p.querySelector('#ng-liste').onclick = async () => {
       const liste = ogrenciSatirlari().map(tr => { const no = satirNo(tr); return { no, ad: satirAd(tr, no) }; });
@@ -118,7 +128,7 @@
         if (!bul) { bulunamayan.push(k.ad || k.no); continue; }
         const tr = bul.s.tr;
         kullanilan.add(tr);
-        const kutular = puanKutulari(tr);
+        const kutular = puanKutulari(tr).slice(Number(p.querySelector('#ng-bas').value) || 0);
         if (kutular.length < k.puanlar.length) { kutuSorunu.push(`${bul.s.ad} (${kutular.length} kutu, ${k.puanlar.length} soru)`); tr.style.background = '#fff3c4'; continue; }
         k.puanlar.forEach((v, i) => degerYaz(kutular[i], v == null ? '' : String(v)));
         tr.style.background = bul.emin ? '#dff3e0' : '#e3ecff';

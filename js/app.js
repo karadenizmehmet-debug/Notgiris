@@ -2,7 +2,7 @@
 // Mehmet Karadeniz, 2026-2027
 // Tüm veriler bu cihazın localStorage alanında tutulur; hiçbir yere gönderilmez.
 
-const SURUM = '0.2.2';
+const SURUM = '0.3.0';
 const ANAHTAR = 'notgiris_v2';
 const $ = s => document.querySelector(s);
 

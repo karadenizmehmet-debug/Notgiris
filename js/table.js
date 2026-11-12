@@ -10,6 +10,8 @@ const Table = (() => {
   // ---------- Ortak: başlık satırından soru sütunlarını bul ----------
   const RE_SORU = /^\s*(\d{1,2})\s*[.\-)]?\s*s\s*[oö0]\s*r\s*u\b(?:.*?(\d{1,3})\s*(?:p|puan|\)))?/i;
   const RE_SORU_GEVSEK = /s[oö0]ru/i;
+  // Tek sütunlu liste: yalnızca toplam not
+  const RE_TOPLAM = /^\s*(not|puan|toplam|toplam\s*puan|sınav\s*notu|yazılı)\s*(?:\((\d{1,3})\))?\s*:?\s*$/i;
 
   function sayi(v) {
     if (v == null) return null;
@@ -30,8 +32,13 @@ const Table = (() => {
         if (m) c.push({ j, no: parseInt(m[1], 10), max: m[2] ? parseInt(m[2], 10) : null });
       });
       if (c.length >= 1) { hi = i; cols = c; break; }
+      const t = rows[i].findIndex(cell => RE_TOPLAM.test(cell));
+      if (t >= 0) {
+        const m = rows[i][t].match(RE_TOPLAM);
+        hi = i; cols = [{ j: t, no: 1, max: m[2] ? parseInt(m[2], 10) : 100 }]; break;
+      }
     }
-    if (hi < 0) throw new Error('Başlık satırında “1.soru, 2.soru…” sütunları bulunamadı.');
+    if (hi < 0) throw new Error('Başlık satırında “1.soru, 2.soru…” ya da “Not” sütunu bulunamadı.');
     cols.sort((a, b) => a.no - b.no);
     const ilkSoru = Math.min(...cols.map(c => c.j));
     // Ad sütunu: soru sütunlarından önce, en çok harf içeren sütun
@@ -190,7 +197,11 @@ const Table = (() => {
       const p = w.text.match(/\((\d{1,3})\)|(\d{1,3})\s*p/i);
       heads.push({ no: parseInt(m[1], 10), x0, x1: w.x1, cy: w.cy, h: w.h, max: p ? parseInt(p[1] || p[2], 10) : null });
     });
-    if (!heads.length) return [];
+    if (!heads.length) {
+      // Soru sütunu yoksa tek “Not/Puan/Toplam” sütunu ara
+      const t = ws.find(w => RE_TOPLAM.test(w.text));
+      return t ? [{ no: 1, x0: t.x0, x1: t.x1, cy: t.cy, h: t.h, max: 100, tek: true }] : [];
+    }
     // En kalabalık başlık satırını al
     const y = median(heads.map(h => h.cy));
     const hh = median(heads.map(h => h.h));
@@ -290,7 +301,7 @@ const Table = (() => {
     const ws = words(data);
     Table.son = { ws, norm };
     const heads = basliklar(ws);
-    if (!heads.length) throw new Error('“1.soru, 2.soru…” başlıkları bulunamadı. Fotoğrafı daha yakından ve düz çekin.');
+    if (!heads.length) throw new Error('“1.soru, 2.soru…” ya da “Not” başlığı bulunamadı. Fotoğrafı daha yakından ve düz çekin.');
     say('Tablo çözülüyor', 0.85);
 
     const hh = median(heads.map(h => h.h));
@@ -298,7 +309,7 @@ const Table = (() => {
     const genislik = heads.length > 1 ? median(heads.slice(1).map((h, i) => h.x0 - heads[i].x0)) : hh * 8;
     const kol = heads.map((h, i) => ({
       no: h.no, max: h.max,
-      x0: h.x0 - genislik * 0.04,
+      x0: h.x0 - genislik * (h.tek ? 0.3 : 0.04),
       x1: i + 1 < heads.length ? heads[i + 1].x0 - genislik * 0.07 : h.x0 + genislik * 0.93,
     }));
     const solSinir = kol[0].x0;
