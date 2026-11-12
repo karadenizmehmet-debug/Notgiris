@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Not Giriş – e-Okul soru bazlı puan doldurucu
 // @namespace    https://karadenizmehmet-debug.github.io/notgiris/
-// @version      0.3.6
+// @version      0.3.7
 // @description  Not Giriş uygulamasından kopyalanan puanları e-Okul not giriş ekranındaki kutulara yazar. Kaydet düğmesine öğretmen basar.
 // @author       Mehmet Karadeniz, 2026-2027
 // @match        https://e-okul.meb.gov.tr/*
@@ -15,10 +15,14 @@
 (function () {
   'use strict';
 
+  // Yalnızca satırın kendi hücreleri (iç içe tablolardaki hücreler değil)
+  function hucreler(tr) {
+    return [...tr.cells].map(td => td.textContent.trim().replace(/\s+/g, ' '));
+  }
   // Bir tablo satırındaki öğrenci numarasını bul: ad hücresinden önceki son rakam hücresi
   // (e-Okul'da önce sıra no, sonra öğrenci no gelir; sıra no alınırsa yanlış öğrenciye yazılabilir)
   function satirNo(tr) {
-    const t = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
+    const t = hucreler(tr);
     const adSira = t.findIndex(x => /[A-Za-zÇĞİÖŞÜçğıöşü]{2,}/.test(x) && x.length < 60);
     const sayilar = t.map((x, i) => (/^\d{1,6}$/.test(x) ? i : -1)).filter(i => i >= 0);
     const once = sayilar.filter(i => adSira < 0 || i < adSira);
@@ -26,8 +30,7 @@
     return i === undefined ? null : t[i];
   }
   function satirAd(tr, no) {
-    const hucreler = [...tr.querySelectorAll('td')].map(td => td.textContent.trim().replace(/\s+/g, ' '));
-    return hucreler.find(t => t !== no && /[A-Za-zÇĞİÖŞÜçğıöşü]{2,}/.test(t) && t.length < 60) || '';
+    return hucreler(tr).find(t => t !== no && /[A-Za-zÇĞİÖŞÜçğıöşü]{2,}/.test(t) && t.length < 60) || '';
   }
   function puanKutulari(tr) {
     return [...tr.querySelectorAll('input')].filter(i => {
@@ -44,7 +47,7 @@
     return out;
   }
   function ogrenciSatirlari() {
-    return belgeler().flatMap(d => [...d.querySelectorAll('tr')]).filter(tr => satirNo(tr) && satirAd(tr, satirNo(tr)));
+    return belgeler().flatMap(d => [...d.querySelectorAll('tr')]).filter(tr => !tr.querySelector('table') && satirNo(tr) && satirAd(tr, satirNo(tr)));
   }
 
   const kucuk = t => (t || '').toLocaleLowerCase('tr').replace(/[çğıöşü]/g, c => ({ ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u' }[c])).replace(/[^a-z]/g, '');
