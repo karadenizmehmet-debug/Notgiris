@@ -2,7 +2,7 @@
 // Mehmet Karadeniz, 2026-2027
 // Tüm veriler bu cihazın localStorage alanında tutulur; hiçbir yere gönderilmez.
 
-const SURUM = '0.5.1';
+const SURUM = '0.5.2';
 const YARDIMCI_GEREKEN = '0.4.0'; // e-Okul yardımcısının (eokul.user.js) en az bu sürümü
 const ANAHTAR = 'notgiris_v2';
 const $ = s => document.querySelector(s);
@@ -358,22 +358,32 @@ const firefoxMu = /Firefox\//.test(navigator.userAgent);
 let kurulumAtla = false;
 try { kurulumAtla = new URLSearchParams(location.search).get('kurulum') === 'atla'; } catch (e) { /* yoksay */ }
 let kurulumIlk = true;
+let kurulumKapaniyor = false;
 function kurulumCiz() {
   const k = $('#kurulum');
-  if (kurulumAtla || yardimciTamam()) { k.hidden = true; document.body.classList.remove('kurulumda'); return; }
+  const kapat = () => { k.hidden = true; document.body.classList.remove('kurulumda'); };
+  if (kurulumAtla) { kapat(); return; }
+  const tamam = yardimciTamam();
+  if (tamam && (k.hidden || kurulumIlk)) { kapat(); return; } // zaten kurulu: ekranı hiç gösterme
+  if (kurulumKapaniyor) return;
   k.hidden = false; document.body.classList.add('kurulumda');
-  if (kurulumIlk) return; // ilk anda yardımcının cevabını bekle, ekran gidip gelmesin
-  // Sayfa Tampermonkey'i göremez: “ekle”ye dokunup geri dönülünce eklendi sayılır (yardımcı görünürse zaten kurulu)
-  const adim = !firefoxMu ? 1 : (yardimci || tmEklendi()) ? 3 : 2;
+  // Yapılan her adım sönükleşir. Sayfa Tampermonkey'i göremez: “ekle”ye dokunup dönülünce
+  // eklendi sayılır; yardımcı görünürse Tampermonkey zaten kuruludur.
+  const adim = tamam ? 4 : !firefoxMu ? 1 : (yardimci || tmEklendi()) ? 3 : 2;
   [1, 2, 3].forEach(i => {
     const li = $('#kurA' + i);
     li.className = i < adim ? 'tamam' : i === adim ? 'sirada' : 'bekliyor';
   });
-  $('#kurTMTekrar').hidden = !!yardimci;
+  $('#kurTMTekrar').hidden = !!yardimci || adim < 3;
   $('#kurBetik').textContent = yardimci ? 'Yardımcıyı güncelle' : 'Yardımcıyı kur';
-  $('#kurDurum').textContent = !firefoxMu ? 'Şu an Firefox dışında bir tarayıcıdasınız.'
+  const d = $('#kurDurum');
+  d.classList.toggle('tamam', tamam);
+  d.textContent = tamam ? '✓ Kurulum tamam. Uygulama açılıyor…'
+    : !firefoxMu ? 'Şu an Firefox dışında bir tarayıcıdasınız.'
     : yardimci ? `Yardımcı eski (v${yardimci.surum}); güncelleyin.`
-    : 'e-Okul yardımcısı bulunamadı. Tampermonkey ve yardımcı kurulunca bu ekran kendiliğinden kapanır.';
+    : kurulumIlk ? 'Kontrol ediliyor…'
+    : 'e-Okul yardımcısı bulunamadı. Kurulunca bu ekran kendiliğinden kapanır.';
+  if (tamam) { kurulumKapaniyor = true; setTimeout(() => { kurulumKapaniyor = false; kapat(); }, 1500); }
 }
 {
   // Chrome'dan Firefox'ta açma: Firefox yoksa Play Store'a gider
@@ -387,7 +397,15 @@ function tmEklendi() { try { return localStorage.getItem('notgiris_tm') === '1';
 function tmIsaretle(v) { try { if (v) localStorage.setItem('notgiris_tm', '1'); else localStorage.removeItem('notgiris_tm'); } catch (e) { /* yoksay */ } }
 $('#kurTM').addEventListener('click', () => tmIsaretle(true));
 $('#kurTMTekrar').addEventListener('click', e => { e.preventDefault(); tmIsaretle(false); kurulumCiz(); });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) kurulumCiz(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  kurulumCiz();
+  // Tampermonkey betiği yalnızca sayfa açılırken çalışır: kurulumdan dönünce sayfayı bir kez yenile
+  if (!$('#kurulum').hidden && firefoxMu && !yardimciTamam()) {
+    yardimciyaYolla({ ngU: 'sor' });
+    setTimeout(() => { if (!yardimciTamam()) location.reload(); }, 1000);
+  }
+});
 kurulumCiz();
 setTimeout(() => { kurulumIlk = false; kurulumCiz(); }, 1500);
 // Kurulum ekranındayken yardımcıyı ara ara yokla (kurulumdan dönünce kendiliğinden kapanır)
