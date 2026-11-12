@@ -18,83 +18,58 @@
 </header>
 
 <nav>
-  <button data-tab="oku" class="aktif">Kâğıt Oku</button>
-  <button data-tab="liste">Liste</button>
-  <button data-tab="sinav">Sınav</button>
+  <button data-tab="puan" class="aktif">Puanlar</button>
+  <button data-tab="ayar">Ayarlar</button>
 </nav>
 
 <main>
-  <!-- KÂĞIT OKU -->
-  <section id="tab-oku" class="tab aktif">
-    <div id="okuBos" class="bilgi">Önce <b>Sınav</b> sekmesinden sınıf listesini girin.</div>
-    <div id="okuAlan">
-      <label class="buyuk-buton">
-        📷 Kâğıdın fotoğrafını çek
+  <!-- PUANLAR -->
+  <section id="tab-puan" class="tab aktif">
+    <div class="giris">
+      <label class="buyuk-buton">📷<span>Listenin fotoğrafı</span>
         <input type="file" id="foto" accept="image/*" capture="environment" hidden>
       </label>
-      <div id="ilerleme" hidden><div class="cubuk"><span></span></div><small></small></div>
+      <label class="buyuk-buton ikinci">📄<span>Excel / CSV dosyası</span>
+        <input type="file" id="dosya" accept=".xlsx,.xls,.csv,.txt,.ods" hidden>
+      </label>
+      <button class="buyuk-buton ikinci" id="yapistirAc">📋<span>Excel'den yapıştır</span></button>
+    </div>
 
-      <div id="sonuc" hidden>
-        <div class="satir">
-          <label>Öğrenci
-            <select id="ogrenciSec"></select>
-          </label>
-        </div>
-        <small id="ogrenciIpucu" class="ipucu"></small>
-
-        <div id="puanlar" class="puan-grid"></div>
-        <div class="toplam">Toplam: <b id="toplam">0</b> / <span id="toplamMax">0</span>
-          <span id="kagitToplam"></span></div>
-
-        <div class="butonlar">
-          <label class="ikincil">
-            + Sayfa ekle
-            <input type="file" id="foto2" accept="image/*" capture="environment" hidden>
-          </label>
-          <button id="kaydet" class="birincil">Kaydet ve sonraki</button>
-        </div>
-
-        <details>
-          <summary>Fotoğrafı göster</summary>
-          <canvas id="onizleme"></canvas>
-          <small>Mavi: bulunan soru etiketi. Kırmızı: okunan puan.</small>
-        </details>
+    <div id="yapistirAlan" hidden>
+      <textarea id="yapistirMetin" rows="6" placeholder="Excel'de başlık satırıyla birlikte tabloyu seçip kopyalayın, buraya yapıştırın."></textarea>
+      <div class="butonlar">
+        <button id="yapistirOku" class="birincil">Oku</button>
+        <button id="yapistirKapat" class="ikincil">Vazgeç</button>
       </div>
     </div>
-  </section>
 
-  <!-- LİSTE -->
-  <section id="tab-liste" class="tab">
+    <div id="ilerleme" hidden><div class="cubuk"><span></span></div><small></small></div>
+
     <div class="ozet" id="ozet"></div>
-    <table id="tablo"><thead></thead><tbody></tbody></table>
-    <div class="butonlar">
+    <div class="tablo-kap"><table id="tablo"><thead></thead><tbody></tbody></table></div>
+
+    <div class="butonlar" id="altButonlar">
       <button id="kopyala" class="birincil">e-Okul için kopyala</button>
       <button id="csv" class="ikincil">CSV indir</button>
+      <button id="temizle" class="tehlike">Temizle</button>
     </div>
-    <small class="ipucu">Kopyaladıktan sonra Firefox'ta e-Okul not giriş sayfasını açın, sağ alttaki <b>Not Giriş</b> panelinde <b>Puanları Doldur</b>'a basın.</small>
+    <small class="ipucu">Sarı hücreleri fotoğraftaki küçük resimle karşılaştırıp düzeltin. Sonra <b>e-Okul için kopyala</b>'ya basın; Firefox'ta e-Okul not giriş sayfasındaki <b>Not Giriş</b> panelinde yapıştırıp <b>Puanları Doldur</b>'a basın.</small>
   </section>
 
-  <!-- SINAV -->
-  <section id="tab-sinav" class="tab">
+  <!-- AYARLAR -->
+  <section id="tab-ayar" class="tab">
     <label>Sınav adı
       <input id="sinavAd" placeholder="ör. 6-A Bilişim 1. Yazılı">
     </label>
-    <label>Soru puanları (virgülle)
-      <input id="sorular" inputmode="numeric" placeholder="ör. 5,10,10,15,10,10,10,10,10,10">
+    <label>Soru puanları (virgülle, isteğe bağlı)
+      <input id="sorular" inputmode="numeric" placeholder="ör. 10,20,30,40">
     </label>
-    <small class="ipucu">Boş bırakırsanız ilk okunan kâğıttaki “1. Soru (5 puan)” etiketlerinden alınır.</small>
+    <small class="ipucu">Girilirse sorunun puanından büyük okunan değerler kırmızı gösterilir.</small>
 
-    <label>Puan kalemi rengi
-      <select id="renk">
-        <option value="kirmizi">Kırmızı</option>
-        <option value="yesil">Yeşil</option>
-      </select>
+    <label>Sınıf listesi (isteğe bağlı)
+      <textarea id="liste" rows="6" placeholder="12 Ali Yılmaz&#10;15 Ayşe Çetin"></textarea>
     </label>
-
-    <label>Sınıf listesi (her satıra: numara ad soyad)
-      <textarea id="liste" rows="8" placeholder="12 Ali Yılmaz&#10;15 Ayşe Demir"></textarea>
-    </label>
-    <small class="ipucu">e-Okul panelindeki <b>Listeyi Al</b> ile kopyalananı da buraya yapıştırabilirsiniz.</small>
+    <small class="ipucu">Girilirse okunan adlar bu listeyle düzeltilir ve öğrenci numarası eklenir. e-Okul panelindeki <b>Listeyi Al</b> ile kopyalananı yapıştırabilirsiniz.</small>
 
     <div class="butonlar">
       <button id="sinavKaydet" class="birincil">Kaydet</button>
@@ -105,6 +80,7 @@
     <hr>
     <p class="ipucu">e-Okul eklentisi (Firefox + Tampermonkey):
       <a href="eokul.user.js">eokul.user.js'yi kur</a></p>
+    <p class="ipucu">Listenin biçimi: bir sütunda ad soyad, yanındaki sütunlarda “1.soru, 2.soru …” başlıkları. Fotoğrafı kâğıda dik ve yakından çekin; ekran fotoğrafı yerine Excel dosyasını kullanmak daha güvenilirdir.</p>
   </section>
 </main>
 
@@ -113,8 +89,9 @@
 <div id="mesaj" hidden></div>
 
 <script src="vendor/tesseract.min.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
 <script src="js/digits.js"></script>
-<script src="js/reader.js"></script>
+<script src="js/table.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

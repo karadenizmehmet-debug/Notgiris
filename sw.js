@@ -1,9 +1,9 @@
 // Not Giriş — çevrimdışı önbellek. Mehmet Karadeniz, 2026-2027
-const CACHE = 'notgiris-v0.1.0';
+const CACHE = 'notgiris-v0.2.0';
 const FILES = [
   './', 'index.html', 'manifest.json', 'css/app.css',
-  'js/app.js', 'js/reader.js', 'js/digits.js', 'model/digits.json',
-  'vendor/tesseract.min.js', 'vendor/worker.min.js',
+  'js/app.js', 'js/table.js', 'js/digits.js', 'model/digits.json',
+  'vendor/tesseract.min.js', 'vendor/xlsx.full.min.js', 'vendor/worker.min.js',
   'vendor/tesseract-core-lstm.wasm.js', 'vendor/tesseract-core-simd-lstm.wasm.js',
   'vendor/tesseract-core-relaxedsimd-lstm.wasm.js',
   'lang/tur.traineddata.gz', 'icons/icon-192.png', 'icons/icon-512.png',

@@ -2,8 +2,8 @@
 // Mehmet Karadeniz, 2026-2027
 // Tüm veriler bu cihazın localStorage alanında tutulur; hiçbir yere gönderilmez.
 
-const SURUM = '0.1.0';
-const ANAHTAR = 'notgiris_v1';
+const SURUM = '0.2.0';
+const ANAHTAR = 'notgiris_v2';
 const $ = s => document.querySelector(s);
 
 // ---------- Depolama ----------
@@ -15,14 +15,17 @@ function yukle() {
   return { sinavlar: [], aktif: null };
 }
 function sakla() {
-  try { localStorage.setItem(ANAHTAR, JSON.stringify(S)); }
-  catch (e) { mesaj('Kaydedilemedi: telefon hafızası dolu olabilir.'); }
+  try {
+    // Hücre resimleri yalnızca bellekte; kaydederken çıkar
+    const kopya = JSON.parse(JSON.stringify(S, (k, v) => (k === 'kirpik' || k === 'adKirpik' ? undefined : v)));
+    localStorage.setItem(ANAHTAR, JSON.stringify(kopya));
+  } catch (e) { mesaj('Kaydedilemedi: telefon hafızası dolu olabilir.'); }
 }
 let S = yukle();
 const aktif = () => S.sinavlar.find(x => x.id === S.aktif) || null;
 
 function yeniSinav(ad) {
-  const s = { id: Date.now().toString(36), ad: ad || 'Yeni sınav', sorular: [], renk: 'kirmizi', ogrenciler: [], sonuclar: {} };
+  const s = { id: Date.now().toString(36), ad: ad || 'Yeni sınav', sorular: [], ogrenciler: [], satirlar: [] };
   S.sinavlar.push(s);
   S.aktif = s.id;
   sakla();
@@ -35,11 +38,13 @@ function mesaj(t) {
   const m = $('#mesaj');
   m.textContent = t; m.hidden = false;
   clearTimeout(mesajZaman);
-  mesajZaman = setTimeout(() => { m.hidden = true; }, 3200);
+  mesajZaman = setTimeout(() => { m.hidden = true; }, 3500);
 }
-const kucuk = s => (s || '').toLocaleLowerCase('tr').replace(/[^a-zçğıöşü]/g, '');
+const kucuk = s => (s || '').toLocaleLowerCase('tr').replace(/[çğıöşü]/g, c => ({ ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u' }[c])).replace(/[^a-z]/g, '');
 function benzerlik(a, b) {
   a = kucuk(a); b = kucuk(b);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
   if (a.length < 2 || b.length < 2) return 0;
   const ikili = s => { const m = new Map(); for (let i = 0; i < s.length - 1; i++) { const k = s.slice(i, i + 2); m.set(k, (m.get(k) || 0) + 1); } return m; };
   const A = ikili(a), B = ikili(b);
@@ -48,15 +53,15 @@ function benzerlik(a, b) {
   return (2 * ortak) / (a.length - 1 + b.length - 1);
 }
 const topla = p => p.reduce((t, v) => t + (Number(v) || 0), 0);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---------- Sekmeler ----------
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => sekme(b.dataset.tab)));
 function sekme(ad) {
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('aktif', b.dataset.tab === ad));
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('aktif', t.id === 'tab-' + ad));
-  if (ad === 'liste') listeCiz();
-  if (ad === 'sinav') sinavFormDoldur();
-  if (ad === 'oku') okuHazirla();
+  if (ad === 'puan') tabloCiz();
+  if (ad === 'ayar') ayarDoldur();
 }
 
 // ---------- Sınav seçimi ----------
@@ -71,18 +76,15 @@ function sinavSecCiz() {
   if (S.aktif) sel.value = S.aktif;
 }
 $('#sinavSec').addEventListener('change', e => {
-  S.aktif = e.target.value; sakla(); cur = null;
-  const acik = document.querySelector('nav button.aktif').dataset.tab;
-  sekme(acik);
+  S.aktif = e.target.value; sakla();
+  sekme(document.querySelector('nav button.aktif').dataset.tab);
 });
 
-// ---------- Sınav formu ----------
-function sinavFormDoldur() {
+// ---------- Ayarlar ----------
+function ayarDoldur() {
   const s = aktif();
-  if (!s) return;
   $('#sinavAd').value = s.ad;
-  $('#sorular').value = s.sorular.join(',');
-  $('#renk').value = s.renk;
+  $('#sorular').value = s.sorular.map(v => v ?? '').join(',');
   $('#liste').value = s.ogrenciler.map(o => `${o.no} ${o.ad}`).join('\n');
 }
 function listeCoz(metin) {
@@ -92,54 +94,63 @@ function listeCoz(metin) {
     try {
       const j = JSON.parse(metin);
       const arr = Array.isArray(j) ? j : (j.ogrenciler || []);
-      return arr.filter(o => o.no).map(o => ({ no: String(o.no).trim(), ad: (o.ad || '').trim() }));
+      return arr.filter(o => o.ad).map(o => ({ no: String(o.no || '').trim(), ad: o.ad.trim() }));
     } catch (e) { mesaj('Yapıştırılan liste okunamadı.'); return null; }
   }
   const out = [];
   metin.split(/\r?\n/).forEach(satir => {
-    const m = satir.match(/^\s*(\d{1,6})\s*[\t ,;.\-]*\s*(.+?)\s*$/);
-    if (m) out.push({ no: m[1], ad: m[2] });
+    const m = satir.match(/^\s*(\d{1,6})?\s*[\t ,;.\-]*\s*(.+?)\s*$/);
+    if (m && /[a-zçğıöşü]/i.test(m[2])) out.push({ no: m[1] || '', ad: m[2] });
   });
   return out;
 }
 $('#sinavKaydet').addEventListener('click', () => {
-  const s = aktif() || yeniSinav();
+  const s = aktif();
   const liste = listeCoz($('#liste').value);
   if (liste === null) return;
   s.ad = $('#sinavAd').value.trim() || s.ad;
-  s.sorular = $('#sorular').value.split(/[,;\s]+/).map(v => parseInt(v, 10)).filter(v => v > 0);
-  s.renk = $('#renk').value;
+  const sorular = $('#sorular').value.split(/[,;\s]+/).filter(v => v !== '').map(v => parseInt(v, 10));
+  if (sorular.length) s.sorular = sorular.map(v => (v > 0 ? v : null));
   s.ogrenciler = liste;
+  if (liste.length) s.satirlar.forEach(adDuzelt);
   sakla(); sinavSecCiz();
-  mesaj(`Kaydedildi: ${liste.length} öğrenci, ${s.sorular.length || 'otomatik'} soru.`);
+  mesaj('Kaydedildi.');
 });
 $('#yeniSinav').addEventListener('click', () => {
   const ad = prompt('Sınav adı:', '');
   if (ad === null) return;
   yeniSinav(ad.trim() || 'Yeni sınav');
-  sinavSecCiz(); sinavFormDoldur(); cur = null;
+  sinavSecCiz(); ayarDoldur();
 });
 $('#sinavSil').addEventListener('click', () => {
   const s = aktif();
-  if (!s) return;
-  if (!confirm(`"${s.ad}" ve okunan tüm puanları silinsin mi? Bu geri alınamaz.`)) return;
+  if (!confirm(`"${s.ad}" ve tüm puanları silinsin mi? Bu geri alınamaz.`)) return;
   S.sinavlar = S.sinavlar.filter(x => x !== s);
   S.aktif = S.sinavlar[0]?.id || null;
   if (!S.aktif) yeniSinav();
-  sakla(); sinavSecCiz(); sinavFormDoldur(); cur = null;
+  sakla(); sinavSecCiz(); ayarDoldur();
 });
 
-// ---------- Kâğıt okuma ----------
-let cur = null; // { scores: {no: {value, ok, conf}}, total, sayfalar: [] , ogrenci }
-
-function okuHazirla() {
+// Okunan adı sınıf listesindeki en yakın adla değiştir
+function adDuzelt(satir) {
   const s = aktif();
-  const hazir = s && s.ogrenciler.length;
-  $('#okuBos').hidden = !!hazir;
-  $('#okuAlan').hidden = !hazir;
-  if (!cur) $('#sonuc').hidden = true;
+  if (!s.ogrenciler.length) return;
+  if (satir.no) {
+    const o = s.ogrenciler.find(x => x.no === satir.no);
+    if (o && benzerlik(o.ad, satir.ad) > 0.3) { satir.ad = o.ad; satir.adEmin = true; return; }
+  }
+  let enIyi = null, puan = 0;
+  for (const o of s.ogrenciler) {
+    const b = benzerlik(o.ad, satir.ad);
+    if (b > puan) { puan = b; enIyi = o; }
+  }
+  if (enIyi && puan >= 0.5) {
+    satir.ad = enIyi.ad; satir.no = enIyi.no || satir.no;
+    satir.adEmin = puan >= 0.8;
+  } else satir.adEmin = false;
 }
 
+// ---------- Okuma ----------
 function ilerleme(m) {
   const kutu = $('#ilerleme');
   kutu.hidden = false;
@@ -149,233 +160,133 @@ function ilerleme(m) {
   if (typeof m.progress === 'number') kutu.querySelector('span').style.width = Math.round(m.progress * 100) + '%';
 }
 
-async function fotoOku(file, ekSayfa) {
+function sonucEkle(r, kaynak) {
   const s = aktif();
-  if (!file || !s) return;
+  const n = r.sorular.length;
+  // Soru puanları: başlıktan geldiyse ve ayarda yoksa al
+  if (!s.sorular.length) s.sorular = r.sorular.map(q => q.max ?? null);
+  else if (s.sorular.length < n) s.sorular = [...s.sorular, ...Array(n - s.sorular.length).fill(null)];
+  let yeni = 0, guncel = 0;
+  for (const satir of r.satirlar) {
+    adDuzelt(satir);
+    const eski = s.satirlar.findIndex(x => (satir.no && x.no === satir.no) || (satir.ad && kucuk(x.ad) === kucuk(satir.ad)));
+    if (eski >= 0) { s.satirlar[eski] = satir; guncel++; } else { s.satirlar.push(satir); yeni++; }
+  }
+  sakla();
+  tabloCiz();
+  mesaj(`${kaynak}: ${yeni} yeni, ${guncel} güncellenen öğrenci. Renkli hücreleri kontrol edin.`);
+}
+
+async function oku(is, kaynak) {
   try {
-    const r = await Reader.read(file, { renk: s.renk, maxes: s.sorular, onProgress: ilerleme });
+    const r = await is();
     $('#ilerleme').hidden = true;
-
-    // Soru puanları belli değilse etiketlerden al
-    if (!s.sorular.length && r.labels.length && r.labels.every(l => l.max)) {
-      const enBuyuk = Math.max(...r.labels.map(l => l.no));
-      s.sorular = Array.from({ length: enBuyuk }, (_, i) => r.labels.find(l => l.no === i + 1)?.max || 0);
-      sakla();
-      mesaj(`Soru puanları kâğıttan alındı: ${s.sorular.join(', ')}`);
-    }
-
-    let scores = r.scores;
-    // Etiket bulunamadıysa: sayıları yukarıdan aşağı sırayla dağıt (hepsi şüpheli)
-    if (!r.labels.length && s.sorular.length) {
-      const sirali = [...r.numbers].sort((a, b) => a.cy - b.cy || a.cx - b.cx);
-      scores = {};
-      s.sorular.forEach((_, i) => {
-        const n = sirali[i];
-        scores[i + 1] = n ? { value: n.value, conf: n.conf, box: n, ok: false } : { value: null, ok: false };
-      });
-      mesaj('Soru etiketleri bulunamadı, puanları kontrol edin.');
-    }
-
-    if (ekSayfa && cur) {
-      Object.entries(scores).forEach(([no, v]) => { if (v.value != null || !cur.scores[no]) cur.scores[no] = v; });
-      cur.sayfalar.push(r);
-      if (!cur.total && r.total) cur.total = r.total;
-    } else {
-      cur = { scores, total: r.total, sayfalar: [r], ogrenci: ogrenciTahmin(r.header) };
-    }
-    sonucCiz();
+    if (!r.satirlar.length) { mesaj('Tabloda öğrenci satırı bulunamadı.'); return; }
+    sonucEkle(r, kaynak);
   } catch (e) {
     console.error(e);
     $('#ilerleme').hidden = true;
-    mesaj('Okuma hatası: ' + (e.message || e));
+    mesaj(e.message || String(e));
   }
 }
-$('#foto').addEventListener('change', e => { fotoOku(e.target.files[0], false); e.target.value = ''; });
-$('#foto2').addEventListener('change', e => { fotoOku(e.target.files[0], true); e.target.value = ''; });
-
-function siradakiOgrenci() {
-  const s = aktif();
-  return s.ogrenciler.find(o => !s.sonuclar[o.no]) || s.ogrenciler[0];
-}
-
-function ogrenciTahmin(baslik) {
-  const s = aktif();
-  const noEsles = baslik.match(/n[oö]\s*[:.]?\s*(\d{1,6})/i);
-  if (noEsles) {
-    const o = s.ogrenciler.find(x => x.no === noEsles[1]);
-    if (o) return { no: o.no, neden: 'Kâğıttaki numaradan bulundu' };
-  }
-  let enIyi = null, puan = 0;
-  for (const o of s.ogrenciler) {
-    const b = benzerlik(baslik, o.ad) + 0.5 * Math.max(...o.ad.split(/\s+/).map(p => benzerlik(baslik, p)));
-    if (b > puan) { puan = b; enIyi = o; }
-  }
-  if (enIyi && puan > 0.55) return { no: enIyi.no, neden: 'Kâğıttaki addan tahmin edildi, kontrol edin' };
-  const sira = siradakiOgrenci();
-  return { no: sira?.no, neden: 'Ad okunamadı: sıradaki öğrenci seçildi' };
-}
-
-function sonucCiz() {
-  const s = aktif();
-  $('#sonuc').hidden = false;
-
-  const sel = $('#ogrenciSec');
-  sel.innerHTML = '';
-  s.ogrenciler.forEach(o => {
-    const op = document.createElement('option');
-    op.value = o.no;
-    op.textContent = `${o.no} ${o.ad}${s.sonuclar[o.no] ? ' ✓' : ''}`;
-    sel.appendChild(op);
-  });
-  sel.value = cur.ogrenci?.no || '';
-  $('#ogrenciIpucu').textContent = cur.ogrenci?.neden || '';
-
-  const n = s.sorular.length || Math.max(0, ...Object.keys(cur.scores).map(Number));
-  const grid = $('#puanlar');
-  grid.innerHTML = '';
-  for (let i = 1; i <= n; i++) {
-    const sc = cur.scores[i] || { value: null, ok: false };
-    const max = s.sorular[i - 1];
-    const kutu = document.createElement('div');
-    kutu.className = 'puan';
-    kutu.innerHTML = `<div class="baslik"><span>${i}. soru</span><span>/${max ?? '?'}</span></div>
-      <input inputmode="numeric" pattern="[0-9]*" data-no="${i}" value="${sc.value ?? ''}">`;
-    const inp = kutu.querySelector('input');
-    const durum = () => {
-      const v = inp.value === '' ? null : Number(inp.value);
-      kutu.classList.remove('tamam', 'supheli', 'hata');
-      if (v == null || Number.isNaN(v) || (max != null && v > max)) kutu.classList.add('hata');
-      else if (!sc.ok && !inp.dataset.elle) kutu.classList.add('supheli');
-      else kutu.classList.add('tamam');
-    };
-    inp.addEventListener('input', () => { inp.dataset.elle = '1'; cur.scores[i] = { value: inp.value === '' ? null : Number(inp.value), ok: true }; durum(); toplamCiz(); });
-    inp.addEventListener('focus', () => inp.select());
-    durum();
-    grid.appendChild(kutu);
-  }
-  toplamCiz();
-  onizlemeCiz();
-}
-
-function degerler() {
-  const s = aktif();
-  const n = s.sorular.length || Math.max(0, ...Object.keys(cur.scores).map(Number));
-  return Array.from({ length: n }, (_, i) => cur.scores[i + 1]?.value ?? null);
-}
-
-function toplamCiz() {
-  const s = aktif();
-  const t = topla(degerler());
-  $('#toplam').textContent = t;
-  $('#toplamMax').textContent = topla(s.sorular) || '?';
-  const kt = $('#kagitToplam');
-  kt.className = '';
-  if (cur.total) {
-    kt.textContent = ` · kâğıtta ${cur.total.value}`;
-    kt.classList.add(cur.total.value === t ? 'uyusur' : 'uyusmaz');
-  } else kt.textContent = '';
-}
-
-function onizlemeCiz() {
-  const r = cur.sayfalar[cur.sayfalar.length - 1];
-  const c = $('#onizleme');
-  c.width = r.canvas.width; c.height = r.canvas.height;
-  const ctx = c.getContext('2d');
-  ctx.drawImage(r.canvas, 0, 0);
-  ctx.lineWidth = Math.max(2, c.width / 400);
-  ctx.strokeStyle = '#1e66d0';
-  r.labels.forEach(l => ctx.strokeRect(l.x0, l.y0, l.x1 - l.x0, l.y1 - l.y0));
-  ctx.strokeStyle = '#d32f2f';
-  ctx.fillStyle = '#d32f2f';
-  ctx.font = `bold ${Math.round(c.width / 40)}px sans-serif`;
-  r.numbers.forEach(n => {
-    ctx.strokeRect(n.x0 - 3, n.y0 - 3, n.x1 - n.x0 + 6, n.y1 - n.y0 + 6);
-    ctx.fillText(String(n.value), n.x1 + 6, n.y1);
-  });
-}
-
-$('#kaydet').addEventListener('click', () => {
-  const s = aktif();
-  const no = $('#ogrenciSec').value;
-  if (!no) { mesaj('Öğrenci seçin.'); return; }
-  const p = degerler();
-  const hatali = p.findIndex((v, i) => v == null || (s.sorular[i] != null && v > s.sorular[i]));
-  if (hatali >= 0 && !confirm(`${hatali + 1}. soruda boş ya da en yüksek puandan büyük değer var. Yine de kaydedilsin mi?`)) return;
-  if (s.sonuclar[no] && !cur.duzenle && !confirm('Bu öğrencinin puanları zaten kayıtlı. Üzerine yazılsın mı?')) return;
-  s.sonuclar[no] = { puanlar: p, ts: Date.now() };
-  sakla();
-  const o = s.ogrenciler.find(x => x.no === no);
-  mesaj(`${o ? o.ad : no}: ${topla(p)} puan kaydedildi.`);
-  cur = null;
-  $('#sonuc').hidden = true;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+$('#foto').addEventListener('change', e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (f) oku(() => Table.fromPhoto(f, ilerleme), 'Fotoğraf');
+});
+$('#dosya').addEventListener('change', e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (f) oku(() => Table.fromFile(f), 'Dosya');
+});
+$('#yapistirAc').addEventListener('click', () => { $('#yapistirAlan').hidden = false; $('#yapistirMetin').focus(); });
+$('#yapistirKapat').addEventListener('click', () => { $('#yapistirAlan').hidden = true; });
+$('#yapistirOku').addEventListener('click', () => {
+  const t = $('#yapistirMetin').value;
+  oku(async () => Table.fromText(t), 'Yapıştırma').then(() => { $('#yapistirAlan').hidden = true; $('#yapistirMetin').value = ''; });
 });
 
-// ---------- Liste ----------
-function listeCiz() {
+// ---------- Tablo ----------
+function tabloCiz() {
   const s = aktif();
+  const n = Math.max(s.sorular.length, ...s.satirlar.map(r => r.puanlar.length), 0);
   const thead = $('#tablo thead'), tbody = $('#tablo tbody');
-  thead.innerHTML = '<tr><th>No</th><th>Ad Soyad</th><th>Toplam</th><th></th></tr>';
+  thead.innerHTML = '<tr><th>Ad Soyad</th>' +
+    Array.from({ length: n }, (_, i) => `<th>${i + 1}<small>/${s.sorular[i] ?? '?'}</small></th>`).join('') +
+    '<th>Top.</th><th></th></tr>';
   tbody.innerHTML = '';
-  if (!s) return;
-  let okunan = 0;
-  s.ogrenciler.forEach(o => {
-    const r = s.sonuclar[o.no];
-    if (r) okunan++;
+  let supToplam = 0;
+  s.satirlar.forEach((r, ri) => {
     const tr = document.createElement('tr');
-    if (!r) tr.className = 'bos';
-    tr.innerHTML = `<td>${o.no}</td><td></td><td>${r ? topla(r.puanlar) : '—'}</td><td>${r ? '<button class="sil">Sil</button>' : ''}</td>`;
-    tr.children[1].textContent = o.ad;
-    if (r) {
-      tr.title = r.puanlar.join(' · ');
-      tr.children[1].addEventListener('click', () => duzenle(o.no));
-      tr.querySelector('.sil').addEventListener('click', () => {
-        if (!confirm(`${o.ad} için okunan puanlar silinsin mi?`)) return;
-        delete s.sonuclar[o.no]; sakla(); listeCiz();
+    const adHucre = document.createElement('td');
+    adHucre.className = 'ad' + (s.ogrenciler.length && !r.adEmin ? ' supheli' : '');
+    adHucre.innerHTML = (r.adKirpik ? `<img src="${r.adKirpik}" alt="">` : '') +
+      `<input value="${esc(r.ad)}" aria-label="Ad soyad">` + (r.no ? `<small>${esc(r.no)}</small>` : '');
+    adHucre.querySelector('input').addEventListener('change', e => {
+      r.ad = e.target.value.trim(); r.adEmin = true; adDuzelt(r); r.adEmin = true; sakla(); tabloCiz();
+    });
+    tr.appendChild(adHucre);
+
+    for (let i = 0; i < n; i++) {
+      const td = document.createElement('td');
+      const v = r.puanlar[i];
+      const max = s.sorular[i];
+      const hata = v == null || (max != null && v > max);
+      const sup = !hata && r.supheli?.[i];
+      if (hata || sup) supToplam++;
+      td.className = 'hucre' + (hata ? ' hata' : sup ? ' supheli' : '');
+      td.innerHTML = (r.kirpik?.[i] ? `<img src="${r.kirpik[i]}" alt="">` : '') +
+        `<input inputmode="numeric" pattern="[0-9]*" value="${v ?? ''}" aria-label="${ri + 1}. öğrenci ${i + 1}. soru">`;
+      const inp = td.querySelector('input');
+      inp.addEventListener('focus', () => inp.select());
+      inp.addEventListener('change', () => {
+        r.puanlar[i] = inp.value === '' ? null : Number(inp.value);
+        if (!r.supheli) r.supheli = [];
+        r.supheli[i] = false;
+        sakla(); tabloCiz();
       });
+      tr.appendChild(td);
     }
+    const top = document.createElement('td');
+    top.className = 'top'; top.textContent = topla(r.puanlar);
+    tr.appendChild(top);
+    const sil = document.createElement('td');
+    sil.innerHTML = '<button class="sil" aria-label="Satırı sil">✕</button>';
+    sil.querySelector('button').addEventListener('click', () => {
+      if (!confirm(`${r.ad || 'Bu satır'} silinsin mi?`)) return;
+      s.satirlar.splice(ri, 1); sakla(); tabloCiz();
+    });
+    tr.appendChild(sil);
     tbody.appendChild(tr);
   });
-  $('#ozet').textContent = `${okunan} / ${s.ogrenciler.length} öğrenci okundu. Düzeltmek için ada dokunun.`;
-}
-
-function duzenle(no) {
-  const s = aktif();
-  const r = s.sonuclar[no];
-  const scores = {};
-  r.puanlar.forEach((v, i) => { scores[i + 1] = { value: v, ok: true }; });
-  cur = { scores, total: null, sayfalar: [], ogrenci: { no, neden: 'Kayıtlı puanlar düzenleniyor' }, duzenle: true };
-  sekme('oku');
-  sonucCiz();
+  $('#ozet').textContent = s.satirlar.length
+    ? `${s.satirlar.length} öğrenci${supToplam ? ` · ${supToplam} hücre kontrol bekliyor` : ' · hepsi kontrol edildi'}`
+    : 'Henüz puan yok. Listenin fotoğrafını çekin, Excel dosyasını seçin ya da Excel\'den yapıştırın.';
+  $('#altButonlar').hidden = !s.satirlar.length;
 }
 
 function aktarimVerisi() {
   const s = aktif();
   return {
-    tip: 'notgiris', surum: 1, sinav: s.ad, sorular: s.sorular,
-    kayitlar: s.ogrenciler.filter(o => s.sonuclar[o.no])
-      .map(o => ({ no: o.no, ad: o.ad, puanlar: s.sonuclar[o.no].puanlar })),
+    tip: 'notgiris', surum: 2, sinav: s.ad, sorular: s.sorular,
+    kayitlar: s.satirlar.map(r => ({ no: r.no || '', ad: r.ad, puanlar: r.puanlar })),
   };
 }
 $('#kopyala').addEventListener('click', async () => {
-  const veri = aktarimVerisi();
-  if (!veri.kayitlar.length) { mesaj('Henüz okunmuş kâğıt yok.'); return; }
-  const metin = JSON.stringify(veri);
+  const s = aktif();
+  const bekleyen = s.satirlar.reduce((t, r) => t + r.puanlar.filter((v, i) => v == null || r.supheli?.[i] || (s.sorular[i] != null && v > s.sorular[i])).length, 0);
+  if (bekleyen && !confirm(`${bekleyen} hücre henüz kontrol edilmedi. Yine de kopyalansın mı?`)) return;
+  const metin = JSON.stringify(aktarimVerisi());
   try {
     await navigator.clipboard.writeText(metin);
-    mesaj(`${veri.kayitlar.length} öğrencinin puanları kopyalandı.`);
+    mesaj(`${s.satirlar.length} öğrencinin puanları kopyalandı.`);
   } catch (e) {
     prompt('Kopyalanamadı. Aşağıdaki metni seçip kopyalayın:', metin);
   }
 });
 $('#csv').addEventListener('click', () => {
   const s = aktif();
-  const n = s.sorular.length;
-  const bas = ['No', 'Ad Soyad', ...Array.from({ length: n }, (_, i) => `S${i + 1}`), 'Toplam'];
-  const satirlar = [bas, ...s.ogrenciler.map(o => {
-    const p = s.sonuclar[o.no]?.puanlar || [];
-    return [o.no, o.ad, ...Array.from({ length: n }, (_, i) => p[i] ?? ''), p.length ? topla(p) : ''];
-  })];
+  const n = Math.max(s.sorular.length, ...s.satirlar.map(r => r.puanlar.length));
+  const bas = ['No', 'Ad Soyad', ...Array.from({ length: n }, (_, i) => `${i + 1}.soru`), 'Toplam'];
+  const satirlar = [bas, ...s.satirlar.map(r => [r.no || '', r.ad, ...Array.from({ length: n }, (_, i) => r.puanlar[i] ?? ''), topla(r.puanlar)])];
   const csv = '﻿' + satirlar.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\r\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -383,13 +294,17 @@ $('#csv').addEventListener('click', () => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 });
+$('#temizle').addEventListener('click', () => {
+  if (!confirm('Bu sınavın tüm puanları silinsin mi? Bu geri alınamaz.')) return;
+  aktif().satirlar = []; sakla(); tabloCiz();
+});
 
 // ---------- Başlat ----------
 if (!S.sinavlar.length) yeniSinav('Yeni sınav');
 if (!aktif()) { S.aktif = S.sinavlar[0].id; sakla(); }
 sinavSecCiz();
 $('#surum').textContent = 'v' + SURUM;
-sekme(aktif().ogrenciler.length ? 'oku' : 'sinav');
+sekme('puan');
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW kaydı başarısız', e));

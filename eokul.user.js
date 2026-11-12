@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Not Giriş – e-Okul soru bazlı puan doldurucu
 // @namespace    https://karadenizmehmet-debug.github.io/notgiris/
-// @version      0.1.0
+// @version      0.2.0
 // @description  Not Giriş uygulamasından kopyalanan puanları e-Okul not giriş ekranındaki kutulara yazar. Kaydet düğmesine öğretmen basar.
 // @author       Mehmet Karadeniz, 2026-2027
 // @match        https://e-okul.meb.gov.tr/*
@@ -33,6 +33,28 @@
   }
   function ogrenciSatirlari() {
     return [...document.querySelectorAll('tr')].filter(tr => satirNo(tr) && satirAd(tr, satirNo(tr)));
+  }
+
+  const kucuk = t => (t || '').toLocaleLowerCase('tr').replace(/[çğıöşü]/g, c => ({ ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u' }[c])).replace(/[^a-z]/g, '');
+  function benzerlik(a, b) {
+    a = kucuk(a); b = kucuk(b);
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+    const ikili = t => { const m = new Map(); for (let i = 0; i < t.length - 1; i++) { const k = t.slice(i, i + 2); m.set(k, (m.get(k) || 0) + 1); } return m; };
+    const A = ikili(a), B = ikili(b);
+    let ortak = 0;
+    for (const [k, v] of A) ortak += Math.min(v, B.get(k) || 0);
+    return (2 * ortak) / (a.length - 1 + b.length - 1);
+  }
+  // Önce numara, sonra ad (tam), sonra en yakın ad (tek ve açık farkla en iyi ise)
+  function satirBul(k, satirlar, kullanilan) {
+    const bos = satirlar.filter(s => !kullanilan.has(s.tr));
+    if (k.no) { const s = bos.find(x => x.no === String(k.no)); if (s) return { s, emin: true }; }
+    const tam = bos.filter(x => kucuk(x.ad) === kucuk(k.ad));
+    if (tam.length === 1) return { s: tam[0], emin: true };
+    const sirali = bos.map(x => ({ x, b: benzerlik(x.ad, k.ad) })).sort((p, q) => q.b - p.b);
+    if (sirali[0] && sirali[0].b >= 0.75 && (!sirali[1] || sirali[0].b - sirali[1].b >= 0.1)) return { s: sirali[0].x, emin: false };
+    return null;
   }
 
   function degerYaz(input, deger) {
@@ -87,20 +109,25 @@
       catch (e) { durum('Yapıştırılan metin okunamadı.'); return; }
       if (!veri || veri.tip !== 'notgiris' || !Array.isArray(veri.kayitlar)) { durum('Bu metin Not Giriş verisi değil.'); return; }
 
-      const satirlar = new Map(ogrenciSatirlari().map(tr => [satirNo(tr), tr]));
+      const satirlar = ogrenciSatirlari().map(tr => { const no = satirNo(tr); return { tr, no, ad: satirAd(tr, no) }; });
+      const kullanilan = new Set();
       let dolan = 0;
-      const bulunamayan = [], kutuSorunu = [];
+      const bulunamayan = [], kutuSorunu = [], tahmini = [];
       for (const k of veri.kayitlar) {
-        const tr = satirlar.get(String(k.no));
-        if (!tr) { bulunamayan.push(`${k.no} ${k.ad}`); continue; }
+        const bul = satirBul(k, satirlar, kullanilan);
+        if (!bul) { bulunamayan.push(k.ad || k.no); continue; }
+        const tr = bul.s.tr;
+        kullanilan.add(tr);
         const kutular = puanKutulari(tr);
-        if (kutular.length < k.puanlar.length) { kutuSorunu.push(`${k.no} (${kutular.length} kutu, ${k.puanlar.length} soru)`); tr.style.background = '#fff3c4'; continue; }
+        if (kutular.length < k.puanlar.length) { kutuSorunu.push(`${bul.s.ad} (${kutular.length} kutu, ${k.puanlar.length} soru)`); tr.style.background = '#fff3c4'; continue; }
         k.puanlar.forEach((v, i) => degerYaz(kutular[i], v == null ? '' : String(v)));
-        tr.style.background = '#dff3e0';
+        tr.style.background = bul.emin ? '#dff3e0' : '#e3ecff';
+        if (!bul.emin) tahmini.push(`${k.ad} → ${bul.s.ad}`);
         dolan++;
       }
       let t = `${dolan} öğrenci dolduruldu (yeşil satırlar).`;
       if (bulunamayan.length) t += `\nSayfada bulunamayan: ${bulunamayan.join(', ')}`;
+      if (tahmini.length) t += `\nAd benzerliğiyle eşleşen (mavi): ${tahmini.join(', ')}`;
       if (kutuSorunu.length) t += `\nKutu sayısı uymayan (sarı): ${kutuSorunu.join(', ')}`;
       t += '\nKontrol edip e-Okul’daki Kaydet düğmesine basın.';
       durum(t);
