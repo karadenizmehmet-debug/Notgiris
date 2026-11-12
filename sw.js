@@ -1,7 +1,7 @@
 // Not Giriş — çevrimdışı önbellek. Mehmet Karadeniz, 2026-2027
 // Uygulama dosyaları: önce ağ (güncelleme hemen gelsin), ağ yoksa önbellek.
 // Büyük dosyalar (OCR motoru, dil verisi, model): önce önbellek.
-const CACHE = 'notgiris-v0.3.2';
+const CACHE = 'notgiris-v0.3.3';
 const BUYUK = ['vendor/', 'lang/', 'model/', 'icons/'];
 const FILES = [
   './', 'index.html', 'manifest.json', 'css/app.css',
@@ -27,7 +27,8 @@ self.addEventListener('fetch', e => {
     e.respondWith(caches.match(e.request, { ignoreSearch: true }).then(r => r || fetch(e.request)));
     return;
   }
-  e.respondWith(fetch(e.request).then(r => {
+  // no-cache: tarayıcının 10 dakikalık HTTP önbelleğini atla, sunucuya sor (ETag ile)
+  e.respondWith(fetch(e.request, { cache: 'no-cache' }).then(r => {
     if (r.ok) { const k = r.clone(); caches.open(CACHE).then(c => c.put(e.request, k)); }
     return r;
   }).catch(() => caches.match(e.request, { ignoreSearch: true })));

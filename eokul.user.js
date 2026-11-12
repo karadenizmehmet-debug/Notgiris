@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Not Giriş – e-Okul soru bazlı puan doldurucu
 // @namespace    https://karadenizmehmet-debug.github.io/notgiris/
-// @version      0.3.2
+// @version      0.3.3
 // @description  Not Giriş uygulamasından kopyalanan puanları e-Okul not giriş ekranındaki kutulara yazar. Kaydet düğmesine öğretmen basar.
 // @author       Mehmet Karadeniz, 2026-2027
 // @match        https://e-okul.meb.gov.tr/*
