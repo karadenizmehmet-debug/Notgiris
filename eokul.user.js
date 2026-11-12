@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Not Giriş – e-Okul soru bazlı puan doldurucu
 // @namespace    https://karadenizmehmet-debug.github.io/notgiris/
-// @version      0.3.5
+// @version      0.3.6
 // @description  Not Giriş uygulamasından kopyalanan puanları e-Okul not giriş ekranındaki kutulara yazar. Kaydet düğmesine öğretmen basar.
 // @author       Mehmet Karadeniz, 2026-2027
 // @match        https://e-okul.meb.gov.tr/*
@@ -93,11 +93,15 @@
       bekliyor = false;
       const k = 1 / v.scale;
       const ekranGen = v.width * v.scale;
-      p.style.width = Math.min(340, ekranGen - 20) + 'px';
+      const acik = p.classList.contains('acik');
+      p.style.width = (acik ? Math.min(420, ekranGen - 20) : 140) + 'px';
       p.style.transform = `scale(${k})`;
+      // Açıkken ekranın üstünde, kapalıyken sağ altta; panel ekran yüksekliğini aşmaz, içi kayar
+      const kutu = p.querySelector('.ng-kutu');
+      if (kutu) kutu.style.maxHeight = Math.max(200, v.height * v.scale - 110) + 'px';
       const r = p.getBoundingClientRect();
       p.style.left = (v.pageLeft + v.width - r.width - 10 * k) + 'px';
-      p.style.top = (v.pageTop + v.height - r.height - 10 * k) + 'px';
+      p.style.top = (acik ? v.pageTop + 10 * k : v.pageTop + v.height - r.height - 70 * k) + 'px';
     };
     const iste = () => { if (!bekliyor) { bekliyor = true; requestAnimationFrame(yerlestir); } };
     v.addEventListener('resize', iste);
@@ -116,7 +120,7 @@
         #ng-panel{position:fixed;right:10px;bottom:10px;text-align:right;pointer-events:none;z-index:2147483647;font:14px system-ui,sans-serif}
         #ng-panel .ng-ac{background:#1f3a5f;color:#fff;border:0;border-radius:22px;padding:10px 16px;font-weight:600;box-shadow:0 2px 8px #0004}
         #ng-panel>*{pointer-events:auto}
-        #ng-panel .ng-kutu{text-align:left;display:none;background:#fff;color:#1d2430;width:330px;max-width:100%;padding:12px;border-radius:12px;box-shadow:0 4px 16px #0005;margin-bottom:8px}
+        #ng-panel .ng-kutu{text-align:left;display:none;overflow:auto;box-sizing:border-box;background:#fff;color:#1d2430;width:100%;padding:12px;border-radius:12px;box-shadow:0 4px 16px #0005;margin-bottom:8px}
         #ng-panel.acik .ng-kutu{display:block}
         #ng-panel textarea{width:100%;height:90px;font-size:12px;box-sizing:border-box}
         #ng-panel button.ng-b{width:100%;margin-top:6px;padding:9px;border-radius:8px;border:1px solid #ccd;background:#f4f6f9;font-weight:600}
@@ -125,13 +129,13 @@
       </style>
       <div class="ng-kutu">
         <b>Not Giriş</b>
+        <button class="ng-b" id="ng-liste">Listeyi Al (uygulamaya)</button>
+        <div class="ng-s" id="ng-durum" style="color:#1f3a5f;font-weight:600"></div>
         <div class="ng-s">Uygulamada “e-Okul için kopyala”ya basın, sonra buraya uzun basıp yapıştırın.</div>
         <textarea id="ng-veri" placeholder="Kopyalanan puanları buraya yapıştırın"></textarea>
         <div class="ng-s">Yazmaya başlanacak kutu (satırdaki sıra):
           <select id="ng-bas"><option value="0">1. kutu</option></select></div>
         <button class="ng-b ana" id="ng-doldur">Puanları Doldur</button>
-        <button class="ng-b" id="ng-liste">Listeyi Al (uygulamaya)</button>
-        <div class="ng-s" id="ng-durum"></div>
       </div>
       <button class="ng-ac" id="ng-ac">Not Giriş</button>`;
     document.documentElement.appendChild(p);
