@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Not Giriş – e-Okul soru bazlı puan doldurucu
 // @namespace    https://karadenizmehmet-debug.github.io/notgiris/
-// @version      0.4.1
+// @version      0.5.0
 // @description  Not Giriş uygulamasındaki puanları e-Okul not giriş ekranındaki kutulara yazar; e-Okul sınıf listesini uygulamaya aktarır. Kaydet düğmesine öğretmen basar.
 // @author       Mehmet Karadeniz, 2026-2027
 // @match        https://e-okul.meb.gov.tr/*
@@ -14,6 +14,7 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @grant        GM_addValueChangeListener
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -180,6 +181,8 @@
   }
   const saat = z => new Date(z).toLocaleString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 
+  let otoDoldur = () => {};
+
   function paneliKur() {
     if (document.getElementById('ng-panel')) return;
     const p = document.createElement('div');
@@ -256,20 +259,10 @@
       durum(`${liste.length} öğrenci uygulamaya gönderildi. Not Giriş uygulamasına dönün; liste kendiliğinden gelir.`);
     });
 
-    $('#ng-doldur').addEventListener('click', () => {
-      let veri;
-      const elle = $('#ng-veri').value.trim();
-      if (elle) {
-        try { veri = JSON.parse(elle); } catch (e) { durum('Yapıştırılan metin okunamadı.'); return; }
-      } else {
-        const v = kayitliVeri();
-        if (!v) { durum('Önce Not Giriş uygulamasında “e-Okul’a gönder”e basın.'); return; }
-        veri = v.veri;
-      }
-      if (!veri || veri.tip !== 'notgiris' || !Array.isArray(veri.kayitlar)) { durum('Bu metin Not Giriş verisi değil.'); return; }
-
+    // Puanları sayfadaki kutulara yaz; { dolan, metin } döner
+    function doldur(veri) {
       const satirlar = satirlariAl();
-      if (!satirlar.length) { durum('Bu sayfada öğrenci tablosu yok. Sınıfı, dersi ve sınav sütununu seçip Listele’ye basın.'); return; }
+      if (!satirlar.length) return { dolan: 0, metin: 'Bu sayfada öğrenci tablosu yok. Sınıfı, dersi ve sınav sütununu seçip Listele’ye basın.' };
       const sec = $('#ng-bas').value;
       const oto = otoBaslangic(satirlar, veri.sinav);
       const bas = sec === 'oto' ? oto.i : Number(sec) || 0;
@@ -293,11 +286,39 @@
       if (tahmini.length) t += `\nAd benzerliğiyle eşleşen (mavi): ${tahmini.join(', ')}`;
       if (kutuSorunu.length) t += `\nKutu sayısı uymayan (sarı): ${kutuSorunu.join(', ')}`;
       t += '\nKontrol edip e-Okul’daki Kaydet düğmesine basın.';
-      durum(t);
+      return { dolan, metin: t };
+    }
+
+    $('#ng-doldur').addEventListener('click', () => {
+      let veri;
+      const elle = $('#ng-veri').value.trim();
+      if (elle) {
+        try { veri = JSON.parse(elle); } catch (e) { durum('Yapıştırılan metin okunamadı.'); return; }
+      } else {
+        const v = kayitliVeri();
+        if (!v) { durum('Önce Not Giriş uygulamasında “e-Okul’a gönder”e basın.'); return; }
+        veri = v.veri;
+      }
+      if (!veri || veri.tip !== 'notgiris' || !Array.isArray(veri.kayitlar)) { durum('Bu metin Not Giriş verisi değil.'); return; }
+      durum(doldur(veri).metin);
     });
 
-    // Uygulamadan puan gönderilmişse ve not giriş tablosu açıksa paneli kendiliğinden aç
+    // Uygulamadan yeni gönderilen puanları kendiliğinden yaz. Her gönderim yalnızca bir kez
+    // yazılır (yanlış sınıf/sütuna tekrar tekrar yazılmasın); yeniden yazmak için “Puanları Doldur”.
+    otoDoldur = () => {
+      const v = kayitliVeri();
+      if (!v || GM_getValue('uygulanan', 0) >= v.zaman) return;
+      if (Date.now() - v.zaman > 2 * 3600e3) return; // 2 saatten eski gönderim kendiliğinden yazılmaz
+      if (!ogrenciSatirlari().length) return;
+      ac();
+      const sonuc = doldur(v.veri);
+      if (sonuc.dolan > 0) GM_setValue('uygulanan', v.zaman);
+      durum('Uygulamadan gelen puanlar kendiliğinden yazıldı.\n' + sonuc.metin);
+    };
+
+    // Uygulamadan puan gönderilmişse ve not giriş tablosu açıksa paneli aç; yeni gönderimse yaz
     if (kayitliVeri() && ogrenciSatirlari().length) ac();
+    otoDoldur();
   }
 
   // ---------- Not Giriş uygulaması sayfası: uygulamayla konuş ----------
@@ -331,6 +352,9 @@
     if (ogrenciSatirlari().length) { paneliKur(); gozcu.disconnect(); }
   }
   if (/\/OKL\//i.test(location.pathname)) {
+    // Uygulamada “e-Okul’a gönder”e basılınca açık e-Okul sekmesi hemen yazsın
+    try { GM_addValueChangeListener('veri', () => { dene(); otoDoldur(); }); } catch (e) { /* desteklenmiyor */ }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { dene(); otoDoldur(); } });
     dene();
     if (!document.getElementById('ng-panel')) gozcu.observe(document.documentElement, { childList: true, subtree: true });
   }

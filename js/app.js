@@ -2,8 +2,8 @@
 // Mehmet Karadeniz, 2026-2027
 // Tüm veriler bu cihazın localStorage alanında tutulur; hiçbir yere gönderilmez.
 
-const SURUM = '0.6.0';
-const YARDIMCI_GEREKEN = '0.4.0'; // e-Okul yardımcısının (eokul.user.js) en az bu sürümü
+const SURUM = '0.6.1';
+const YARDIMCI_GEREKEN = '0.5.0'; // e-Okul yardımcısının (eokul.user.js) en az bu sürümü
 const ANAHTAR = 'notgiris_v2';
 const $ = s => document.querySelector(s);
 
@@ -348,7 +348,7 @@ window.addEventListener('message', e => {
   if (m.ngY === 'durum') { yardimci = { surum: m.surum }; yardimciCiz(); kurulumCiz(); listeGeldi(m.liste); }
   if (m.ngY === 'gonderildi' && bekleyenGonderim) {
     clearTimeout(bekleyenGonderim); bekleyenGonderim = null;
-    alert(`${m.adet} öğrencinin puanları e-Okul yardımcısına gönderildi.\n\nFirefox'ta e-Okul not giriş sayfasını açıp Listele'ye basın; panel kendiliğinden açılır. “Puanları Doldur”a basın, kontrol edip Kaydet'e siz basın.`);
+    alert(`${m.adet} öğrencinin puanları gönderildi.\n\ne-Okul not giriş sekmesine geçin: kutular kendiliğinden dolar. Sayfa açık değilse sınıfı ve dersi seçip Listele'ye basın.\n\nKontrol edip e-Okul'un Kaydet düğmesine siz basın.`);
   }
 });
 // ---------- Kurulum ekranı ----------
