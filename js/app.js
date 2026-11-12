@@ -2,7 +2,7 @@
 // Mehmet Karadeniz, 2026-2027
 // Tüm veriler bu cihazın localStorage alanında tutulur; hiçbir yere gönderilmez.
 
-const SURUM = '0.4.0';
+const SURUM = '0.4.1';
 const YARDIMCI_GEREKEN = '0.4.0'; // e-Okul yardımcısının (eokul.user.js) en az bu sürümü
 const ANAHTAR = 'notgiris_v2';
 const $ = s => document.querySelector(s);

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Not Giriş – e-Okul soru bazlı puan doldurucu
 // @namespace    https://karadenizmehmet-debug.github.io/notgiris/
-// @version      0.4.0
+// @version      0.4.1
 // @description  Not Giriş uygulamasındaki puanları e-Okul not giriş ekranındaki kutulara yazar; e-Okul sınıf listesini uygulamaya aktarır. Kaydet düğmesine öğretmen basar.
 // @author       Mehmet Karadeniz, 2026-2027
 // @match        https://e-okul.meb.gov.tr/*
@@ -323,8 +323,17 @@
     return;
   }
 
-  // Panel e-Okul'un her sayfasında görünür; öğrenci tablosu düğmeye basınca aranır.
-  paneliKur();
+  // Giriş ve yönlendirme sayfalarına dokunma: panel yalnızca öğrenci tablosu olan sayfada kurulur.
+  let zaman = null;
+  const gozcu = new MutationObserver(() => { clearTimeout(zaman); zaman = setTimeout(dene, 700); });
+  function dene() {
+    if (document.getElementById('ng-panel')) { gozcu.disconnect(); return; }
+    if (ogrenciSatirlari().length) { paneliKur(); gozcu.disconnect(); }
+  }
+  if (/\/OKL\//i.test(location.pathname)) {
+    dene();
+    if (!document.getElementById('ng-panel')) gozcu.observe(document.documentElement, { childList: true, subtree: true });
+  }
   // Düğme görünmezse Tampermonkey menüsünden açılabilsin
   try { GM_registerMenuCommand('Not Giriş panelini aç', () => { paneliKur(); document.getElementById('ng-ac').click(); }); } catch (e) { /* menü desteklenmiyor */ }
 })();
