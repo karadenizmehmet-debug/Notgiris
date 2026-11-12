@@ -2,7 +2,7 @@
 // Mehmet Karadeniz, 2026-2027
 // Tüm veriler bu cihazın localStorage alanında tutulur; hiçbir yere gönderilmez.
 
-const SURUM = '0.5.0';
+const SURUM = '0.5.1';
 const YARDIMCI_GEREKEN = '0.4.0'; // e-Okul yardımcısının (eokul.user.js) en az bu sürümü
 const ANAHTAR = 'notgiris_v2';
 const $ = s => document.querySelector(s);
@@ -363,13 +363,13 @@ function kurulumCiz() {
   if (kurulumAtla || yardimciTamam()) { k.hidden = true; document.body.classList.remove('kurulumda'); return; }
   k.hidden = false; document.body.classList.add('kurulumda');
   if (kurulumIlk) return; // ilk anda yardımcının cevabını bekle, ekran gidip gelmesin
-  const adim = !firefoxMu ? 1 : yardimci ? 3 : 2;
+  // Sayfa Tampermonkey'i göremez: “ekle”ye dokunup geri dönülünce eklendi sayılır (yardımcı görünürse zaten kurulu)
+  const adim = !firefoxMu ? 1 : (yardimci || tmEklendi()) ? 3 : 2;
   [1, 2, 3].forEach(i => {
     const li = $('#kurA' + i);
     li.className = i < adim ? 'tamam' : i === adim ? 'sirada' : 'bekliyor';
   });
-  // Tampermonkey kurulu mu bilinemez; yardımcı yoksa 2 ve 3 birlikte açık kalır
-  if (firefoxMu && !yardimci) $('#kurA3').className = 'sirada';
+  $('#kurTMTekrar').hidden = !!yardimci;
   $('#kurBetik').textContent = yardimci ? 'Yardımcıyı güncelle' : 'Yardımcıyı kur';
   $('#kurDurum').textContent = !firefoxMu ? 'Şu an Firefox dışında bir tarayıcıdasınız.'
     : yardimci ? `Yardımcı eski (v${yardimci.surum}); güncelleyin.`
@@ -383,6 +383,11 @@ function kurulumCiz() {
     ? `intent://${adres.host}${adres.pathname}#Intent;scheme=https;package=org.mozilla.firefox;S.browser_fallback_url=${encodeURIComponent(magaza)};end`
     : 'https://www.mozilla.org/tr/firefox/';
 }
+function tmEklendi() { try { return localStorage.getItem('notgiris_tm') === '1'; } catch (e) { return false; } }
+function tmIsaretle(v) { try { if (v) localStorage.setItem('notgiris_tm', '1'); else localStorage.removeItem('notgiris_tm'); } catch (e) { /* yoksay */ } }
+$('#kurTM').addEventListener('click', () => tmIsaretle(true));
+$('#kurTMTekrar').addEventListener('click', e => { e.preventDefault(); tmIsaretle(false); kurulumCiz(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) kurulumCiz(); });
 kurulumCiz();
 setTimeout(() => { kurulumIlk = false; kurulumCiz(); }, 1500);
 // Kurulum ekranındayken yardımcıyı ara ara yokla (kurulumdan dönünce kendiliğinden kapanır)

@@ -136,3 +136,4 @@ body.kurulumda { overflow: hidden; }
 .kur-adimlar li.tamam .kur-buton, .kur-adimlar li.bekliyor .kur-buton { display: none; }
 .kur-adimlar li.bekliyor { opacity: .45; }
 .kur-durum { margin: 4px 0 0; padding: 10px; border-radius: 8px; background: var(--sup); color: #6b4d00; font-size: 13px; }
+.kur-not a { color: var(--mavi); }
