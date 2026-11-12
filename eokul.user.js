@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Not Giriş – e-Okul soru bazlı puan doldurucu
 // @namespace    https://karadenizmehmet-debug.github.io/notgiris/
-// @version      0.3.4
+// @version      0.3.5
 // @description  Not Giriş uygulamasından kopyalanan puanları e-Okul not giriş ekranındaki kutulara yazar. Kaydet düğmesine öğretmen basar.
 // @author       Mehmet Karadeniz, 2026-2027
 // @match        https://e-okul.meb.gov.tr/*
@@ -80,15 +80,43 @@
     input.dispatchEvent(new Event('blur', { bubbles: true }));
   }
 
+  // e-Okul masaüstü düzeninde telefonda sayfa küçültülmüş görünür; panel ekranın sağ altında
+  // ve yakınlaştırmadan bağımsız olarak normal boyutta dursun (görsel görüntü alanına göre yerleşir).
+  function yerlestirKur(p) {
+    const v = window.visualViewport;
+    if (!v) return;
+    p.style.position = 'absolute';
+    p.style.right = 'auto'; p.style.bottom = 'auto';
+    p.style.transformOrigin = '0 0';
+    let bekliyor = false;
+    const yerlestir = () => {
+      bekliyor = false;
+      const k = 1 / v.scale;
+      const ekranGen = v.width * v.scale;
+      p.style.width = Math.min(340, ekranGen - 20) + 'px';
+      p.style.transform = `scale(${k})`;
+      const r = p.getBoundingClientRect();
+      p.style.left = (v.pageLeft + v.width - r.width - 10 * k) + 'px';
+      p.style.top = (v.pageTop + v.height - r.height - 10 * k) + 'px';
+    };
+    const iste = () => { if (!bekliyor) { bekliyor = true; requestAnimationFrame(yerlestir); } };
+    v.addEventListener('resize', iste);
+    v.addEventListener('scroll', iste);
+    window.addEventListener('scroll', iste);
+    new MutationObserver(iste).observe(p, { attributes: true, attributeFilter: ['class'], childList: true, subtree: true, characterData: true });
+    yerlestir();
+  }
+
   function paneliKur() {
     if (document.getElementById('ng-panel')) return;
     const p = document.createElement('div');
     p.id = 'ng-panel';
     p.innerHTML = `
       <style>
-        #ng-panel{position:fixed!important;right:10px;bottom:10px;transform:none;z-index:2147483647;font:14px system-ui,sans-serif}
+        #ng-panel{position:fixed;right:10px;bottom:10px;text-align:right;pointer-events:none;z-index:2147483647;font:14px system-ui,sans-serif}
         #ng-panel .ng-ac{background:#1f3a5f;color:#fff;border:0;border-radius:22px;padding:10px 16px;font-weight:600;box-shadow:0 2px 8px #0004}
-        #ng-panel .ng-kutu{display:none;background:#fff;color:#1d2430;width:min(330px,92vw);padding:12px;border-radius:12px;box-shadow:0 4px 16px #0005;margin-bottom:8px}
+        #ng-panel>*{pointer-events:auto}
+        #ng-panel .ng-kutu{text-align:left;display:none;background:#fff;color:#1d2430;width:330px;max-width:100%;padding:12px;border-radius:12px;box-shadow:0 4px 16px #0005;margin-bottom:8px}
         #ng-panel.acik .ng-kutu{display:block}
         #ng-panel textarea{width:100%;height:90px;font-size:12px;box-sizing:border-box}
         #ng-panel button.ng-b{width:100%;margin-top:6px;padding:9px;border-radius:8px;border:1px solid #ccd;background:#f4f6f9;font-weight:600}
@@ -107,6 +135,7 @@
       </div>
       <button class="ng-ac" id="ng-ac">Not Giriş</button>`;
     document.documentElement.appendChild(p);
+    yerlestirKur(p);
     const durum = t => { p.querySelector('#ng-durum').textContent = t; };
 
     p.querySelector('#ng-ac').addEventListener('click', () => {
@@ -122,7 +151,7 @@
     p.querySelector('#ng-liste').addEventListener('click', () => {
       const liste = ogrenciSatirlari().map(tr => { const no = satirNo(tr); return { no, ad: satirAd(tr, no) }; });
       if (!liste.length) { durum(`Bu sayfada öğrenci satırı bulunamadı. Sınıfı ve dersi seçip not giriş tablosunu açın.\n(Bulunan: ${belgeler().length} belge, ${belgeler().reduce((t, d) => t + d.querySelectorAll('tr').length, 0)} satır, ${belgeler().reduce((t, d) => t + d.querySelectorAll('input').length, 0)} kutu)`); return; }
-      const metin = JSON.stringify(liste);
+      const metin = liste.map(o => `${o.no} ${o.ad}`).join('\n');
       try { GM_setClipboard(metin, 'text'); durum(`${liste.length} öğrenci kopyalandı. Not Giriş > Ayarlar > Sınıf listesi alanına yapıştırıp Kaydet’e basın.`); }
       catch (e) { p.querySelector('#ng-veri').value = metin; durum('Kopyalanamadı: kutudaki metni seçip kopyalayın.'); }
     });
