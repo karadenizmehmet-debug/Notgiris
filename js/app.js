@@ -2,7 +2,8 @@
 // Mehmet Karadeniz, 2026-2027
 // Tüm veriler bu cihazın localStorage alanında tutulur; hiçbir yere gönderilmez.
 
-const SURUM = '0.3.8';
+const SURUM = '0.4.0';
+const YARDIMCI_GEREKEN = '0.4.0'; // e-Okul yardımcısının (eokul.user.js) en az bu sürümü
 const ANAHTAR = 'notgiris_v2';
 const $ = s => document.querySelector(s);
 
@@ -210,7 +211,7 @@ $('#deneme').addEventListener('click', () => {
   const kaynak = aktif();
   const liste = kaynak.ogrenciler.length ? kaynak.ogrenciler : S.sinavlar.find(x => x.ogrenciler.length)?.ogrenciler;
   if (!liste || !liste.length) {
-    alert('Önce sınıf listesini ekleyin:\n\n1) Firefox\'ta e-Okul not giriş sayfasında sağ alttaki Not Giriş panelinden “Listeyi Al”a basın.\n2) Not Giriş > Ayarlar > Sınıf listesi alanına yapıştırıp Kaydet\'e basın.\n3) Sonra yeniden Deneme\'ye basın.');
+    alert('Önce sınıf listesi gerekli:\n\n1) Firefox\'ta e-Okul not giriş sayfasını açın.\n2) Not Giriş panelinde “Sınıf listesini uygulamaya gönder”e basın.\n3) Bu uygulamaya dönün; liste kendiliğinden gelir. Sonra yeniden Deneme\'ye basın.');
     return;
   }
   const tekNot = confirm('Tek not mu üretilsin (ör. 1. Sınav)?\n\nTamam: tek not (0-100)\nİptal: soru bazlı (10,20,30,40)');
@@ -289,18 +290,70 @@ function aktarimVerisi() {
     kayitlar: s.satirlar.map(r => ({ no: r.no || '', ad: r.ad, puanlar: r.puanlar })),
   };
 }
-$('#kopyala').addEventListener('click', async () => {
-  const s = aktif();
-  const bekleyen = s.satirlar.reduce((t, r) => t + r.puanlar.filter((v, i) => v == null || r.supheli?.[i] || (s.sorular[i] != null && v > s.sorular[i])).length, 0);
-  if (bekleyen && !confirm(`${bekleyen} hücre henüz kontrol edilmedi. Yine de kopyalansın mı?`)) return;
-  const metin = JSON.stringify(aktarimVerisi());
+async function panoyaKopyala(metin, adet) {
   try {
     await navigator.clipboard.writeText(metin);
-    mesaj(`${s.satirlar.length} öğrencinin puanları kopyalandı.`);
+    mesaj(`${adet} öğrencinin puanları kopyalandı.`);
   } catch (e) {
     prompt('Kopyalanamadı. Aşağıdaki metni seçip kopyalayın:', metin);
   }
+}
+$('#kopyala').addEventListener('click', () => {
+  const s = aktif();
+  const bekleyen = s.satirlar.reduce((t, r) => t + r.puanlar.filter((v, i) => v == null || r.supheli?.[i] || (s.sorular[i] != null && v > s.sorular[i])).length, 0);
+  if (bekleyen && !confirm(`${bekleyen} hücre henüz kontrol edilmedi. Yine de gönderilsin mi?`)) return;
+  const veri = aktarimVerisi();
+  // Yardımcı kuruluysa doğrudan ona ver; değilse panoya kopyala
+  if (yardimciTamam()) {
+    bekleyenGonderim = setTimeout(() => { bekleyenGonderim = null; panoyaKopyala(JSON.stringify(veri), s.satirlar.length); }, 1500);
+    yardimciyaYolla({ ngU: 'gonder', veri });
+  } else panoyaKopyala(JSON.stringify(veri), s.satirlar.length);
 });
+
+// ---------- e-Okul yardımcısı (Tampermonkey betiği) ile konuşma ----------
+// Betik bu sayfada da çalışır; mesajlar aynı sayfa içinde kalır, hiçbir sunucuya gitmez.
+let yardimci = null, bekleyenGonderim = null;
+const surumSayi = v => String(v || '0').split('.').map(Number).reduce((t, x, i) => t + (x || 0) * [1e6, 1e3, 1][i], 0);
+const yardimciTamam = () => yardimci && surumSayi(yardimci.surum) >= surumSayi(YARDIMCI_GEREKEN);
+const yardimciyaYolla = o => window.postMessage(JSON.stringify(o), location.origin);
+function yardimciCiz() {
+  const d = $('#yardimciDurum');
+  if (!yardimci) {
+    d.className = 'yardimci yok';
+    d.innerHTML = 'e-Okul yardımcısı bu tarayıcıda kurulu değil. <a href="eokul.user.js">Kur</a> (Firefox + Tampermonkey gerekir)';
+  } else if (!yardimciTamam()) {
+    d.className = 'yardimci eski';
+    d.innerHTML = `e-Okul yardımcısı eski (v${esc(yardimci.surum)}). <a href="eokul.user.js">Güncelle</a>`;
+  } else {
+    d.className = 'yardimci var';
+    d.textContent = `✓ e-Okul yardımcısı kurulu (v${yardimci.surum})`;
+  }
+  $('#kopyala').textContent = yardimciTamam() ? "e-Okul'a gönder" : 'e-Okul için kopyala';
+}
+function listeGeldi(l) {
+  if (!l || !Array.isArray(l.liste) || !l.liste.length) return;
+  if (l.zaman <= (S.listeZaman || 0)) return;
+  S.listeZaman = l.zaman;
+  const s = aktif();
+  s.ogrenciler = l.liste.filter(o => o.ad).map(o => ({ no: String(o.no || ''), ad: o.ad }));
+  s.satirlar.forEach(adDuzelt);
+  sakla(); tabloCiz();
+  if ($('#tab-ayar').classList.contains('aktif')) ayarDoldur();
+  mesaj(`e-Okul'dan ${s.ogrenciler.length} öğrencilik sınıf listesi alındı.`);
+}
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || typeof e.data !== 'string' || !e.data.startsWith('{"ngY"')) return;
+  let m;
+  try { m = JSON.parse(e.data); } catch (err) { return; }
+  if (m.ngY === 'durum') { yardimci = { surum: m.surum }; yardimciCiz(); listeGeldi(m.liste); }
+  if (m.ngY === 'gonderildi' && bekleyenGonderim) {
+    clearTimeout(bekleyenGonderim); bekleyenGonderim = null;
+    alert(`${m.adet} öğrencinin puanları e-Okul yardımcısına gönderildi.\n\nFirefox'ta e-Okul not giriş sayfasını açıp Listele'ye basın; panel kendiliğinden açılır. “Puanları Doldur”a basın, kontrol edip Kaydet'e siz basın.`);
+  }
+});
+// Uygulamaya her dönüşte yeni liste var mı diye sor
+document.addEventListener('visibilitychange', () => { if (!document.hidden) yardimciyaYolla({ ngU: 'sor' }); });
+
 $('#csv').addEventListener('click', () => {
   const s = aktif();
   const n = Math.max(s.sorular.length, ...s.satirlar.map(r => r.puanlar.length));
@@ -322,6 +375,8 @@ $('#temizle').addEventListener('click', () => {
 if (!S.sinavlar.length) yeniSinav('Yeni sınav');
 if (!aktif()) { S.aktif = S.sinavlar[0].id; sakla(); }
 sinavSecCiz();
+yardimciCiz();
+yardimciyaYolla({ ngU: 'sor' });
 $('#surum').textContent = 'v' + SURUM;
 $('#surumUst').textContent = 'v' + SURUM;
 

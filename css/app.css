@@ -110,3 +110,11 @@ footer { text-align: center; color: var(--soluk); font-size: 12px; padding: 20px
 :root[data-tema="gece"] nav button.aktif { color: #8fbaf0; }
 .giris .buyuk-buton { margin: 0; }
 .deneme-buton { width: 100%; margin: 0 0 12px; border-style: dashed; color: var(--soluk); font-weight: 500; }
+
+/* e-Okul yardımcısı durum satırı */
+.yardimci { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+.yardimci.var { background: #e3f4e5; color: #1e5b27; }
+.yardimci.yok, .yardimci.eski { background: #fff3c4; color: #6b4d00; }
+.yardimci a { color: inherit; font-weight: 700; }
+:root[data-tema="gece"] .yardimci.var { background: #1d3a24; color: #a8dcb0; }
+:root[data-tema="gece"] .yardimci.yok, :root[data-tema="gece"] .yardimci.eski { background: #3d3214; color: #f0d68a; }

@@ -60,7 +60,8 @@
       <button id="csv" class="ikincil">CSV indir</button>
       <button id="temizle" class="tehlike">Temizle</button>
     </div>
-    <small class="ipucu">Sarı hücreleri fotoğraftaki küçük resimle karşılaştırıp düzeltin. Sonra <b>e-Okul için kopyala</b>'ya basın; Firefox'ta e-Okul not giriş sayfasındaki <b>Not Giriş</b> panelinde yapıştırıp <b>Puanları Doldur</b>'a basın.</small>
+    <small class="ipucu">Sarı hücreleri fotoğraftaki küçük resimle karşılaştırıp düzeltin. Sonra <b>e-Okul'a gönder</b>'e basın; Firefox'ta e-Okul not giriş sayfasını açın, <b>Not Giriş</b> paneli kendiliğinden açılır, <b>Puanları Doldur</b>'a basın.</small>
+    <div id="yardimciDurum" class="yardimci"></div>
   </section>
 
   <!-- AYARLAR -->
@@ -76,7 +77,7 @@
     <label>Sınıf listesi (isteğe bağlı)
       <textarea id="liste" rows="6" placeholder="12 Ali Yılmaz&#10;15 Ayşe Çetin"></textarea>
     </label>
-    <small class="ipucu">Girilirse okunan adlar bu listeyle düzeltilir ve öğrenci numarası eklenir. e-Okul panelindeki <b>Listeyi Al</b> ile kopyalananı yapıştırabilirsiniz.</small>
+    <small class="ipucu">Girilirse okunan adlar bu listeyle düzeltilir ve öğrenci numarası eklenir. e-Okul panelindeki <b>Sınıf listesini uygulamaya gönder</b>'e basınca liste buraya kendiliğinden gelir.</small>
 
     <div class="butonlar">
       <button id="sinavKaydet" class="birincil">Kaydet</button>
@@ -85,8 +86,8 @@
     </div>
 
     <hr>
-    <p class="ipucu"><b>e-Okul yardımcısı</b>: e-Okul not giriş sayfasına “Puanları Doldur” düğmesi ekleyen küçük betik.
-      Bu bağlantıyı <b>Tampermonkey kurulu Firefox'ta</b> açın; Tampermonkey “Yükle” ekranı gösterir.
+    <p class="ipucu"><b>e-Okul yardımcısı</b>: e-Okul not giriş sayfasına “Puanları Doldur” düğmesi ekleyen küçük betik. Bir kez kurulur, sonra kendiliğinden güncellenir.<br>
+      Kurulum: Android'de <b>Firefox</b> → Eklentiler → <b>Tampermonkey</b> ekleyin, sonra bu sayfayı Firefox'ta açıp aşağıdaki bağlantıya dokunun ve <b>Yükle</b>'ye basın.
       Chrome'da açarsanız yalnızca kod görünür, bir şey kurulmaz.<br>
       <a href="eokul.user.js">e-Okul yardımcısını kur</a></p>
     <p class="ipucu">Listenin biçimi: bir sütunda ad soyad, yanındaki sütunlarda “1.soru, 2.soru …” başlıkları. Fotoğrafı kâğıda dik ve yakından çekin; ekran fotoğrafı yerine Excel dosyasını kullanmak daha güvenilirdir.</p>
