@@ -2,7 +2,7 @@
 // Mehmet Karadeniz, 2026-2027
 // Tüm veriler bu cihazın localStorage alanında tutulur; hiçbir yere gönderilmez.
 
-const SURUM = '0.3.0';
+const SURUM = '0.3.1';
 const ANAHTAR = 'notgiris_v2';
 const $ = s => document.querySelector(s);
 
@@ -202,6 +202,25 @@ $('#yapistirKapat').addEventListener('click', () => { $('#yapistirAlan').hidden 
 $('#yapistirOku').addEventListener('click', () => {
   const t = $('#yapistirMetin').value;
   oku(async () => Table.fromText(t), 'Yapıştırma').then(() => { $('#yapistirAlan').hidden = true; $('#yapistirMetin').value = ''; });
+});
+
+// ---------- Deneme ----------
+// Ayarlardaki sınıf listesiyle ayrı bir "DENEME" sınavı açar, rastgele not üretir.
+$('#deneme').addEventListener('click', () => {
+  const kaynak = aktif();
+  const liste = kaynak.ogrenciler.length ? kaynak.ogrenciler : S.sinavlar.find(x => x.ogrenciler.length)?.ogrenciler;
+  if (!liste || !liste.length) {
+    alert('Önce sınıf listesini ekleyin:\n\n1) Firefox\'ta e-Okul not giriş sayfasında sağ alttaki Not Giriş panelinden “Listeyi Al”a basın.\n2) Not Giriş > Ayarlar > Sınıf listesi alanına yapıştırıp Kaydet\'e basın.\n3) Sonra yeniden Deneme\'ye basın.');
+    return;
+  }
+  const tekNot = confirm('Tek not mu üretilsin (ör. 1. Sınav)?\n\nTamam: tek not (0-100)\nİptal: soru bazlı (10,20,30,40)');
+  const s = yeniSinav('DENEME – kaydetmeyin');
+  s.ogrenciler = liste.map(o => ({ ...o }));
+  s.sorular = tekNot ? [100] : [10, 20, 30, 40];
+  const rast = max => Math.round(max * (0.3 + Math.random() * 0.7));
+  s.satirlar = s.ogrenciler.map(o => ({ ad: o.ad, no: o.no, adEmin: true, puanlar: s.sorular.map(rast), supheli: s.sorular.map(() => false) }));
+  sakla(); sinavSecCiz(); tabloCiz();
+  alert('Deneme sınavı oluşturuldu.\n\nDİKKAT: Bunlar rastgele notlar. e-Okul\'da “Puanları Doldur” ile yalnızca kutuların dolduğunu görün; e-Okul\'un Kaydet düğmesine BASMAYIN. Denemeden sonra sayfayı kaydetmeden kapatın.');
 });
 
 // ---------- Tablo ----------

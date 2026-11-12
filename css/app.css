@@ -109,3 +109,4 @@ footer { text-align: center; color: var(--soluk); font-size: 12px; padding: 20px
 }
 :root[data-tema="gece"] nav button.aktif { color: #8fbaf0; }
 .giris .buyuk-buton { margin: 0; }
+.deneme-buton { width: 100%; margin: 0 0 12px; border-style: dashed; color: var(--soluk); font-weight: 500; }

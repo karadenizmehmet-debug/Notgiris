@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Not Giriş – e-Okul soru bazlı puan doldurucu
 // @namespace    https://karadenizmehmet-debug.github.io/notgiris/
-// @version      0.3.0
+// @version      0.3.1
 // @description  Not Giriş uygulamasından kopyalanan puanları e-Okul not giriş ekranındaki kutulara yazar. Kaydet düğmesine öğretmen basar.
 // @author       Mehmet Karadeniz, 2026-2027
 // @match        https://e-okul.meb.gov.tr/*
@@ -109,7 +109,7 @@
       const liste = ogrenciSatirlari().map(tr => { const no = satirNo(tr); return { no, ad: satirAd(tr, no) }; });
       if (!liste.length) { durum('Bu sayfada öğrenci satırı bulunamadı.'); return; }
       const metin = JSON.stringify(liste);
-      try { await navigator.clipboard.writeText(metin); durum(`${liste.length} öğrenci kopyalandı. Uygulamada Sınav > Sınıf listesi alanına yapıştırın.`); }
+      try { await navigator.clipboard.writeText(metin); durum(`${liste.length} öğrenci kopyalandı. Not Giriş > Ayarlar > Sınıf listesi alanına yapıştırıp Kaydet’e basın.`); }
       catch (e) { p.querySelector('#ng-veri').value = metin; durum('Kopyalanamadı: kutudaki metni seçip kopyalayın.'); }
     };
 
