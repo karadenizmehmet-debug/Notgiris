@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Not Giriş – e-Okul soru bazlı puan doldurucu
 // @namespace    https://karadenizmehmet-debug.github.io/notgiris/
-// @version      0.3.7
+// @version      0.3.8
 // @description  Not Giriş uygulamasından kopyalanan puanları e-Okul not giriş ekranındaki kutulara yazar. Kaydet düğmesine öğretmen basar.
 // @author       Mehmet Karadeniz, 2026-2027
 // @match        https://e-okul.meb.gov.tr/*
@@ -15,9 +15,14 @@
 (function () {
   'use strict';
 
-  // Yalnızca satırın kendi hücreleri (iç içe tablolardaki hücreler değil)
+  // Satırın kendi hücrelerinin yazısı; hücre içindeki iç içe tabloların yazısı sayılmaz
+  // (e-Okul sayfa düzeni de tablo: dış satır tüm sayfanın yazısını içerir)
   function hucreler(tr) {
-    return [...tr.cells].map(td => td.textContent.trim().replace(/\s+/g, ' '));
+    return [...tr.cells].map(td => {
+      let el = td;
+      if (td.querySelector('table')) { el = td.cloneNode(true); el.querySelectorAll('table').forEach(t => t.remove()); }
+      return el.textContent.trim().replace(/\s+/g, ' ');
+    });
   }
   // Bir tablo satırındaki öğrenci numarasını bul: ad hücresinden önceki son rakam hücresi
   // (e-Okul'da önce sıra no, sonra öğrenci no gelir; sıra no alınırsa yanlış öğrenciye yazılabilir)
@@ -47,7 +52,13 @@
     return out;
   }
   function ogrenciSatirlari() {
-    return belgeler().flatMap(d => [...d.querySelectorAll('tr')]).filter(tr => !tr.querySelector('table') && satirNo(tr) && satirAd(tr, satirNo(tr)));
+    const uygun = belgeler().flatMap(d => [...d.querySelectorAll('tr')]).filter(tr => satirNo(tr) && satirAd(tr, satirNo(tr)));
+    // Öğrenci satırları aynı tabloda kardeştir: en çok satırı olan tablo bölümünü al, sayfa düzeni satırlarını at
+    const gruplar = new Map();
+    uygun.forEach(tr => { const g = gruplar.get(tr.parentElement) || []; g.push(tr); gruplar.set(tr.parentElement, g); });
+    let en = [];
+    gruplar.forEach(g => { if (g.length > en.length) en = g; });
+    return en;
   }
 
   const kucuk = t => (t || '').toLocaleLowerCase('tr').replace(/[çğıöşü]/g, c => ({ ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u' }[c])).replace(/[^a-z]/g, '');
